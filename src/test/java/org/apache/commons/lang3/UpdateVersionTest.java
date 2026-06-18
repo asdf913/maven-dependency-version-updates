@@ -45,7 +45,7 @@ public class UpdateVersionTest {
 				//
 				return contains;
 				//
-			} else if (proxy instanceof Map && Objects.equals(name, "put")) {
+			} else if (proxy instanceof Map && contains(Arrays.asList("put", "get"), name)) {
 				//
 				return null;
 				//

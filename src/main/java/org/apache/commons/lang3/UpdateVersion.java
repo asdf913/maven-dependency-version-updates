@@ -35,7 +35,7 @@ public class UpdateVersion {
 		//
 		final Map<String, String> map = toMap(args);
 		//
-		final String file = map != null ? map.get("file") : null;
+		final String file = get(map, "file");
 		//
 		final Path path = file != null ? Path.of(file) : null;
 		//
@@ -91,11 +91,11 @@ public class UpdateVersion {
 					//
 					if (dependency != null) {
 						//
-						if (map != null && Objects.equals(dependency.groupId, map.get("groupId"))
-								&& Objects.equals(dependency.artifactId, map.get("artifactId"))) {
+						if (map != null && Objects.equals(dependency.groupId, get(map, "groupId"))
+								&& Objects.equals(dependency.artifactId, get(map, "artifactId"))) {
 							//
 							if (map.containsKey("version")
-									&& !Objects.equals(version = map.get("version"), dependency.version)) {
+									&& !Objects.equals(version = get(map, "version"), dependency.version)) {
 								//
 								final StringBuilder sb = new StringBuilder(ObjectUtils.getIfNull(
 										path != null && isFile(path.toFile()) ? Files.readString(path) : null, ""));
@@ -157,6 +157,10 @@ public class UpdateVersion {
 			//
 		close(xmlStreamReader);
 		//
+	}
+
+	private static <V> V get(final Map<?, V> instance, final Object key) {
+		return instance != null ? instance.get(key) : null;
 	}
 
 	private static void close(final XMLStreamReader instance) throws XMLStreamException {
