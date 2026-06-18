@@ -38,9 +38,9 @@ public class UpdateVersion {
 		//
 		final Path path = file != null ? Path.of(file) : null;
 		//
-		final Iterable<String> lines = path != null && isFile(path.toFile()) ? Files.readAllLines(path) : null;
+		final Iterable<String> lines = isFile(toFile(path)) ? Files.readAllLines(path) : null;
 		//
-		final XMLStreamReader xmlStreamReader = path != null && isFile(path.toFile())
+		final XMLStreamReader xmlStreamReader = isFile(toFile(path))
 				? createXMLStreamReader(XMLInputFactory.newInstance(), Files.newInputStream(path))
 				: null;
 		//
@@ -96,8 +96,8 @@ public class UpdateVersion {
 							if (map.containsKey("version")
 									&& !Objects.equals(version = get(map, "version"), dependency.version)) {
 								//
-								final StringBuilder sb = new StringBuilder(ObjectUtils.getIfNull(
-										path != null && isFile(path.toFile()) ? Files.readString(path) : null, ""));
+								final StringBuilder sb = new StringBuilder(ObjectUtils
+										.getIfNull(isFile(toFile(path)) ? Files.readString(path) : null, ""));
 								//
 								if (dependency.versionIndexStart != null && dependency.versionIndexEnd != null) {
 									//
@@ -156,6 +156,10 @@ public class UpdateVersion {
 			//
 		close(xmlStreamReader);
 		//
+	}
+
+	private static File toFile(final Path instance) {
+		return instance != null ? instance.toFile() : null;
 	}
 
 	private static XMLStreamReader createXMLStreamReader(final XMLInputFactory instance, final InputStream inputStream)
