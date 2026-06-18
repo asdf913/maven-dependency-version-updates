@@ -2,14 +2,18 @@ package org.apache.commons.lang3;
 
 import java.io.File;
 import java.io.InputStream;
+import java.lang.reflect.Field;
+import java.lang.reflect.Member;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 import javax.xml.stream.Location;
 import javax.xml.stream.XMLInputFactory;
@@ -22,6 +26,8 @@ import org.apache.commons.lang3.function.FailableFunction;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.d2ab.function.ObjIntFunction;
 import org.d2ab.function.ObjIntPredicate;
+
+import io.github.toolfactory.narcissus.Narcissus;
 
 public class UpdateVersion {
 
@@ -135,11 +141,11 @@ public class UpdateVersion {
 						&& (dependency = ObjectUtils.getIfNull(dependency, Dependency::new)) != null
 						&& (line = IterableUtils.get(lines, location.getLineNumber() - 1)) != null) {
 					//
-					dependency.versionIndexStart = testAndApply((a, b) -> a != null && b == a.lastIndexOf("<version>"),
-							line, line.indexOf("<version>"), (a, b) -> Integer.valueOf(b), null);
+					dependency.versionIndexStart = testAndApply((a, b) -> b == lastIndexOf(a, "<version>"), line,
+							line.indexOf("<version>"), (a, b) -> Integer.valueOf(b), null);
 					//
-					dependency.versionIndexEnd = testAndApply((a, b) -> a != null && b == a.lastIndexOf("</version>"),
-							line, line.indexOf("</version>"), (a, b) -> Integer.valueOf(b), null);
+					dependency.versionIndexEnd = testAndApply((a, b) -> b == lastIndexOf(a, "</version>"), line,
+							line.indexOf("</version>"), (a, b) -> Integer.valueOf(b), null);
 					//
 				} // if
 					//
@@ -149,6 +155,38 @@ public class UpdateVersion {
 			//
 		close(xmlStreamReader);
 		//
+	}
+
+	private static int lastIndexOf(final String a, final String b) {
+		//
+		if (a == null) {
+			//
+			return -1;
+			//
+		} // if
+			//
+		final Field value = testAndApply(x -> IterableUtils.size(x) == 1, toList(
+				filter(FieldUtils.getAllFieldsList(getClass(a)).stream(), f -> Objects.equals(getName(f), "value"))),
+				x -> IterableUtils.get(x, 0), null);
+		//
+		return value == null || Narcissus.getField(a, value) != null ? a.lastIndexOf(b) : -1;
+		//
+	}
+
+	private static String getName(final Member instance) {
+		return instance != null ? instance.getName() : null;
+	}
+
+	private static <T> List<T> toList(final Stream<T> instance) {
+		return instance != null ? instance.toList() : null;
+	}
+
+	private static <T> Stream<T> filter(final Stream<T> instance, final Predicate<? super T> predicate) {
+		return instance != null ? instance.filter(predicate) : instance;
+	}
+
+	private static Class<?> getClass(final Object instance) {
+		return instance != null ? instance.getClass() : null;
 	}
 
 	private static <T, R> R testAndApply(final ObjIntPredicate<T> predicate, final T object, final int integer,

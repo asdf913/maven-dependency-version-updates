@@ -15,6 +15,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 import javax.xml.stream.XMLInputFactory;
 
@@ -45,6 +46,13 @@ public class UpdateVersionTest {
 				//
 			final String name = getName(method);
 			//
+			if (Boolean.logicalAnd(Objects.equals(name, "toString"),
+					method != null && method.getParameterCount() == 0)) {
+				//
+				return null;
+				//
+			} // if
+				//
 			if (proxy instanceof Collection && Objects.equals(name, "contains")) {
 				//
 				return contains;
@@ -57,6 +65,22 @@ public class UpdateVersionTest {
 				//
 				return null;
 				//
+			} else if (proxy instanceof Member && Objects.equals(name, "getName")) {
+				//
+				return null;
+				//
+			} else if (proxy instanceof Stream) {
+				//
+				if (Objects.equals(name, "toList")) {
+					//
+					return null;
+					//
+				} else if (Objects.equals(name, "filter")) {
+					//
+					return proxy;
+					//
+				} // if
+					//
 			} else if (Boolean.logicalOr(proxy instanceof Predicate, proxy instanceof ObjIntPredicate)
 					&& Objects.equals(name, "test")) {
 				//
@@ -153,7 +177,7 @@ public class UpdateVersionTest {
 		//
 		Method m = null;
 		//
-		Object result = null;
+		Object result, name = null;
 		//
 		String toString = null;
 		//
@@ -218,9 +242,13 @@ public class UpdateVersionTest {
 			//
 			result = Narcissus.invokeStaticMethod(m, toArray(collection));
 			//
-			if (contains(Arrays.asList(Integer.TYPE, Boolean.TYPE), getReturnType(m)) || Boolean.logicalAnd(
-					Objects.equals(getName(m), "createXMLStreamReader"),
-					Arrays.equals(parameterTypes, new Class<?>[] { XMLInputFactory.class, InputStream.class }))) {
+			if (contains(Arrays.asList(Integer.TYPE, Boolean.TYPE), getReturnType(m))
+					|| Boolean.logicalAnd(Objects.equals(name = getName(m), "createXMLStreamReader"),
+							Arrays.equals(parameterTypes, new Class<?>[] { XMLInputFactory.class, InputStream.class }))
+					|| Boolean.logicalAnd(Objects.equals(name, "getClass"),
+							Arrays.equals(parameterTypes, new Class<?>[] { Object.class }))
+					|| Boolean.logicalAnd(Objects.equals(name, "filter"),
+							Arrays.equals(parameterTypes, new Class<?>[] { Stream.class, Predicate.class }))) {
 				//
 				Assert.assertNotNull(result, toString);
 				//
