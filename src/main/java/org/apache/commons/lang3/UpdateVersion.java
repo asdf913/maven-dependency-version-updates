@@ -190,7 +190,7 @@ public class UpdateVersion {
 		//
 		Location location = null;
 		//
-		Dependency dependency = holder != null ? holder.value : null;
+		Dependency dependency = value(holder);
 		//
 		if (event == XMLStreamConstants.START_ELEMENT) {
 			//
@@ -265,6 +265,10 @@ public class UpdateVersion {
 			//
 		return Pair.of(null, dependency);
 		//
+	}
+
+	private static <T> T value(final Holder<T> instance) {
+		return instance != null ? instance.value : null;
 	}
 
 	private static Location getLocation(final XMLStreamReader instance) {
