@@ -91,30 +91,28 @@ public class UpdateVersion {
 					if (dependency != null) {
 						//
 						if (map != null && Objects.equals(dependency.groupId, get(map, "groupId"))
-								&& Objects.equals(dependency.artifactId, get(map, "artifactId"))) {
+								&& Objects.equals(dependency.artifactId, get(map, "artifactId"))
+								&& map.containsKey("version")
+								&& !Objects.equals(version = get(map, "version"), dependency.version)) {
 							//
-							if (map.containsKey("version")
-									&& !Objects.equals(version = get(map, "version"), dependency.version)) {
+							final StringBuilder sb = new StringBuilder(ObjectUtils.getIfNull(
+									testAndApply(x -> isFile(toFile(x)), path, x -> Files.readString(x), null), ""));
+							//
+							if (dependency.versionIndexStart != null && dependency.versionIndexEnd != null) {
 								//
-								final StringBuilder sb = new StringBuilder(ObjectUtils.getIfNull(
-										testAndApply(x -> isFile(toFile(x)), path, x -> Files.readString(x), null),
-										""));
-								//
-								if (dependency.versionIndexStart != null && dependency.versionIndexEnd != null) {
-									//
-									sb.delete(dependency.versionIndexStart, dependency.versionIndexEnd);
-									//
-								} // if
-									//
-								System.out.println(String.format("groupId=%1$s,artifactId=%2$s,version=[%3$s->%4$s]",
-										dependency.groupId, dependency.artifactId, dependency.version, version));
-								//
-								Files.writeString(path, dependency.versionIndexStart != null
-										? sb.insert(dependency.versionIndexStart, String.join("", "<version>", version))
-										: sb);
+								sb.delete(dependency.versionIndexStart, dependency.versionIndexEnd);
 								//
 							} // if
 								//
+							System.out.println(String.format("groupId=%1$s,artifactId=%2$s,version=[%3$s->%4$s]",
+									dependency.groupId, dependency.artifactId, dependency.version, version));
+							//
+							Files.writeString(path,
+									dependency.versionIndexStart != null
+											? sb.insert(dependency.versionIndexStart,
+													String.join("", "<version>", version))
+											: sb);
+							//
 						} // if
 							//
 						dependency = null;
@@ -134,21 +132,17 @@ public class UpdateVersion {
 				} // if
 					//
 				if (Objects.equals(localName, "version") && dependencies && !exclusions
-						&& (dependency = ObjectUtils.getIfNull(dependency, Dependency::new)) != null) {
+						&& (dependency = ObjectUtils.getIfNull(dependency, Dependency::new)) != null
+						&& (line = IterableUtils.get(lines, location.getLineNumber() - 1)) != null) {
 					//
-					if ((line = IterableUtils.get(lines, location.getLineNumber() - 1)) != null) {
-						//
-						dependency.versionIndexStart = (indexOf = line.indexOf("<version>")) >= 0
-								&& line.indexOf("<version>") == line.lastIndexOf("<version>") ? Integer.valueOf(indexOf)
-										: null;
-						//
-						dependency.versionIndexEnd = (indexOf = line.indexOf("</version>")) >= 0
-								&& line.indexOf("</version>") == line.lastIndexOf("</version>")
-										? Integer.valueOf(indexOf)
-										: null;
-						//
-					} // if
-						//
+					dependency.versionIndexStart = (indexOf = line.indexOf("<version>")) >= 0
+							&& line.indexOf("<version>") == line.lastIndexOf("<version>") ? Integer.valueOf(indexOf)
+									: null;
+					//
+					dependency.versionIndexEnd = (indexOf = line.indexOf("</version>")) >= 0
+							&& line.indexOf("</version>") == line.lastIndexOf("</version>") ? Integer.valueOf(indexOf)
+									: null;
+					//
 				} // if
 					//
 			} // if
