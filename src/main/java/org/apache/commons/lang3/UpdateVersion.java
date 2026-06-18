@@ -69,11 +69,12 @@ public class UpdateVersion {
 			//
 			if ((event = xmlStreamReader.next()) == XMLStreamConstants.START_ELEMENT) {
 				//
-				if ((Objects.equals(localName = xmlStreamReader.getLocalName(), "dependencies") && !dependencies
-						&& (dependencies = true)) || !dependencies || Objects.equals(localName, "dependency")
-						|| Objects.equals(localName, "scope")
-						|| (Objects.equals(localName, "exclusions") && !exclusions && (exclusions = true)) || exclusions
-						|| xmlStreamReader.getLocation() == null) {
+				if ((Boolean.logicalAnd(Objects.equals(localName = xmlStreamReader.getLocalName(), "dependencies"),
+						!dependencies) && (dependencies = true)) || !dependencies
+						|| contains(Arrays.asList("dependency", "scope"), localName)
+						|| (Boolean.logicalAnd(Objects.equals(localName, "exclusions"), !exclusions)
+								&& (exclusions = true))
+						|| exclusions || xmlStreamReader.getLocation() == null) {
 					//
 					continue;
 					//
@@ -83,13 +84,14 @@ public class UpdateVersion {
 				//
 				location = xmlStreamReader.getLocation();
 				//
-				if ((Objects.equals(localName = xmlStreamReader.getLocalName(), "dependencies") && dependencies
-						&& !(dependencies = false))) {
+				if (Boolean.logicalAnd(Objects.equals(localName = xmlStreamReader.getLocalName(), "dependencies"),
+						dependencies) && !(dependencies = false)) {
 					//
 					break;
 					//
 				} else if (Boolean.logicalOr(Objects.equals(localName, "scope"),
-						Objects.equals(localName, "exclusions") && exclusions && !(exclusions = false))) {
+						Boolean.logicalAnd(Objects.equals(localName, "exclusions"), exclusions)
+								&& !(exclusions = false))) {
 					//
 					continue;
 					//
