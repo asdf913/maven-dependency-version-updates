@@ -96,7 +96,7 @@ public class UpdateVersion {
 								&& !Objects.equals(version = get(map, "version"), dependency.version)) {
 							//
 							final StringBuilder sb = new StringBuilder(ObjectUtils.getIfNull(
-									testAndApply(x -> isFile(toFile(x)), path, x -> Files.readString(x), null), ""));
+									testAndApply(x -> isFile(toFile(x)), path, Files::readString, null), ""));
 							//
 							if (dependency.versionIndexStart != null && dependency.versionIndexEnd != null) {
 								//
