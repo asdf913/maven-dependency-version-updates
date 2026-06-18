@@ -72,7 +72,7 @@ public class UpdateVersion {
 						&& (dependencies = true)) || !dependencies || Objects.equals(localName, "dependency")
 						|| Objects.equals(localName, "scope")
 						|| (Objects.equals(localName, "exclusions") && !exclusions && (exclusions = true)) || exclusions
-						|| (location = xmlStreamReader.getLocation()) == null) {
+						|| xmlStreamReader.getLocation() == null) {
 					//
 					continue;
 					//
