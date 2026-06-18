@@ -346,7 +346,7 @@ public class UpdateVersionTest {
 		Assert.assertEquals(
 				METHOD_AND != null ? METHOD_AND.invoke(null, Boolean.TRUE, Boolean.TRUE, new boolean[] { false })
 						: null,
-				Boolean.TRUE);
+				Boolean.FALSE);
 		//
 	}
 
