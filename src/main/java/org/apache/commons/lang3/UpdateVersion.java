@@ -127,8 +127,9 @@ public class UpdateVersion {
 						//
 					continue;
 					//
-				} else if (contains(Arrays.asList("groupId", "artifactId", "version"), localName) && dependencies
-						&& !exclusions && (dependency = ObjectUtils.getIfNull(dependency, Dependency::new)) != null) {
+				} else if (Boolean.logicalAnd(contains(Arrays.asList("groupId", "artifactId", "version"), localName),
+						dependencies) && !exclusions
+						&& (dependency = ObjectUtils.getIfNull(dependency, Dependency::new)) != null) {
 					//
 					FieldUtils.writeDeclaredField(dependency, localName,
 							StringUtils.substringBetween(IterableUtils.get(lines, location.getLineNumber() - 1),
