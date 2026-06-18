@@ -2,6 +2,7 @@ package org.apache.commons.lang3;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -31,8 +32,6 @@ public class UpdateVersion {
 
 	public static void main(final String[] args) throws XMLStreamException, IOException, IllegalAccessException {
 		//
-		final XMLInputFactory xmlInputFactory = XMLInputFactory.newInstance();
-		//
 		final Map<String, String> map = toMap(args);
 		//
 		final String file = get(map, "file");
@@ -41,8 +40,8 @@ public class UpdateVersion {
 		//
 		final Iterable<String> lines = path != null && isFile(path.toFile()) ? Files.readAllLines(path) : null;
 		//
-		final XMLStreamReader xmlStreamReader = xmlInputFactory != null && path != null && isFile(path.toFile())
-				? xmlInputFactory.createXMLStreamReader(Files.newInputStream(path))
+		final XMLStreamReader xmlStreamReader = path != null && isFile(path.toFile())
+				? createXMLStreamReader(XMLInputFactory.newInstance(), Files.newInputStream(path))
 				: null;
 		//
 		String localName = null;
@@ -157,6 +156,11 @@ public class UpdateVersion {
 			//
 		close(xmlStreamReader);
 		//
+	}
+
+	private static XMLStreamReader createXMLStreamReader(final XMLInputFactory instance, final InputStream inputStream)
+			throws XMLStreamException {
+		return instance != null ? instance.createXMLStreamReader(inputStream) : null;
 	}
 
 	private static <V> V get(final Map<?, V> instance, final Object key) {

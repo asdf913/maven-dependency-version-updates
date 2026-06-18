@@ -1,9 +1,12 @@
 package org.apache.commons.lang3;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Array;
 import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
@@ -15,6 +18,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 
+import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 
 import org.testng.Assert;
@@ -107,7 +111,8 @@ public class UpdateVersionTest {
 	}
 
 	@Test
-	void testNotNull() {
+	void testNotNull()
+			throws InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException {
 		//
 		final Method[] ms = UpdateVersion.class.getDeclaredMethods();
 		//
@@ -150,6 +155,14 @@ public class UpdateVersionTest {
 					//
 					add(collection, new String[] {});
 					//
+				} else if (Objects.equals(parameterType, XMLInputFactory.class)) {
+					//
+					add(collection, XMLInputFactory.newDefaultFactory());
+					//
+				} else if (Objects.equals(parameterType, InputStream.class)) {
+					//
+					add(collection, new ByteArrayInputStream(new byte[] {}));
+					//
 				} else if (parameterType != null && parameterType.isArray()) {
 					//
 					add(collection, Array.newInstance(parameterType, 0));
@@ -166,7 +179,9 @@ public class UpdateVersionTest {
 			//
 			result = Narcissus.invokeStaticMethod(m, toArray(collection));
 			//
-			if (contains(Arrays.asList(Integer.TYPE, Boolean.TYPE), getReturnType(m))) {
+			if (contains(Arrays.asList(Integer.TYPE, Boolean.TYPE), getReturnType(m)) || Boolean.logicalAnd(
+					Objects.equals(getName(m), "createXMLStreamReader"),
+					Arrays.equals(parameterTypes, new Class<?>[] { XMLInputFactory.class, InputStream.class }))) {
 				//
 				Assert.assertNotNull(result, toString);
 				//
