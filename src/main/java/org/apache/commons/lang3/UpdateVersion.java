@@ -138,7 +138,7 @@ public class UpdateVersion {
 					//
 				} // if
 					//
-				if (Objects.equals(localName, "version") && dependencies && !exclusions
+				if (Boolean.logicalAnd(Objects.equals(localName, "version"), dependencies) && !exclusions
 						&& (dependency = ObjectUtils.getIfNull(dependency, Dependency::new)) != null
 						&& (line = IterableUtils.get(lines, location.getLineNumber() - 1)) != null) {
 					//
