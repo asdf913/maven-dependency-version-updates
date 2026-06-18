@@ -155,12 +155,14 @@ public class UpdateVersion {
 				//
 		} // while
 			//
-		if (xmlStreamReader != null) {
-			//
-			xmlStreamReader.close();
-			//
-		} // if
-			//
+		close(xmlStreamReader);
+		//
+	}
+
+	private static void close(final XMLStreamReader instance) throws XMLStreamException {
+		if (instance != null) {
+			instance.close();
+		}
 	}
 
 	private static boolean contains(final Collection<?> instance, final Object item) {

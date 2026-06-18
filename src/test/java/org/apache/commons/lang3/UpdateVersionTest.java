@@ -33,6 +33,12 @@ public class UpdateVersionTest {
 		@Override
 		public Object invoke(final Object proxy, final Method method, final Object[] args) throws Throwable {
 			//
+			if (Objects.equals(getReturnType(method), Void.TYPE)) {
+				//
+				return null;
+				//
+			} // if
+				//
 			final String name = getName(method);
 			//
 			if (proxy instanceof Collection && Objects.equals(name, "contains")) {
@@ -49,6 +55,10 @@ public class UpdateVersionTest {
 			//
 		}
 
+	}
+
+	private static Class<?> getReturnType(final Method instance) {
+		return instance != null ? instance.getReturnType() : null;
 	}
 
 	@Test
@@ -74,7 +84,7 @@ public class UpdateVersionTest {
 			//
 			result = Narcissus.invokeStaticMethod(m, toArray(Collections.nCopies(m.getParameterCount(), null)));
 			//
-			if (contains(Arrays.asList(Integer.TYPE, Boolean.TYPE), m.getReturnType())) {
+			if (contains(Arrays.asList(Integer.TYPE, Boolean.TYPE), getReturnType(m))) {
 				//
 				Assert.assertNotNull(result, toString);
 				//
@@ -156,7 +166,7 @@ public class UpdateVersionTest {
 			//
 			result = Narcissus.invokeStaticMethod(m, toArray(collection));
 			//
-			if (contains(Arrays.asList(Integer.TYPE, Boolean.TYPE), m.getReturnType())) {
+			if (contains(Arrays.asList(Integer.TYPE, Boolean.TYPE), getReturnType(m))) {
 				//
 				Assert.assertNotNull(result, toString);
 				//
