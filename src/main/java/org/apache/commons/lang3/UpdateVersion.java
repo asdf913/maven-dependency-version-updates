@@ -1,7 +1,6 @@
 package org.apache.commons.lang3;
 
 import java.io.File;
-import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -10,6 +9,7 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Predicate;
 
 import javax.xml.stream.Location;
 import javax.xml.stream.XMLInputFactory;
@@ -18,6 +18,7 @@ import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 
 import org.apache.commons.collections4.IterableUtils;
+import org.apache.commons.lang3.function.FailableFunction;
 import org.apache.commons.lang3.reflect.FieldUtils;
 
 public class UpdateVersion {
@@ -30,19 +31,18 @@ public class UpdateVersion {
 
 	}
 
-	public static void main(final String[] args) throws XMLStreamException, IOException, IllegalAccessException {
+	public static void main(final String[] args) throws Exception {
 		//
 		final Map<String, String> map = toMap(args);
 		//
 		final String file = get(map, "file");
 		//
-		final Path path = file != null ? Path.of(file) : null;
+		final Path path = testAndApply(Objects::nonNull, file, Path::of, null);
 		//
-		final Iterable<String> lines = isFile(toFile(path)) ? Files.readAllLines(path) : null;
+		final Iterable<String> lines = testAndApply(x -> isFile(toFile(x)), path, Files::readAllLines, null);
 		//
-		final XMLStreamReader xmlStreamReader = isFile(toFile(path))
-				? createXMLStreamReader(XMLInputFactory.newInstance(), Files.newInputStream(path))
-				: null;
+		final XMLStreamReader xmlStreamReader = testAndApply(x -> isFile(toFile(x)), path,
+				x -> createXMLStreamReader(XMLInputFactory.newInstance(), Files.newInputStream(x)), null);
 		//
 		String localName = null;
 		//
@@ -96,8 +96,9 @@ public class UpdateVersion {
 							if (map.containsKey("version")
 									&& !Objects.equals(version = get(map, "version"), dependency.version)) {
 								//
-								final StringBuilder sb = new StringBuilder(ObjectUtils
-										.getIfNull(isFile(toFile(path)) ? Files.readString(path) : null, ""));
+								final StringBuilder sb = new StringBuilder(ObjectUtils.getIfNull(
+										testAndApply(x -> isFile(toFile(x)), path, x -> Files.readString(x), null),
+										""));
 								//
 								if (dependency.versionIndexStart != null && dependency.versionIndexEnd != null) {
 									//
@@ -156,6 +157,20 @@ public class UpdateVersion {
 			//
 		close(xmlStreamReader);
 		//
+	}
+
+	private static <T, R, E extends Throwable> R testAndApply(final Predicate<T> predicate, final T value,
+			final FailableFunction<T, R, E> functionTrue, final FailableFunction<T, R, E> functionFalse) throws E {
+		return test(predicate, value) ? apply(functionTrue, value) : apply(functionFalse, value);
+	}
+
+	private static <T> boolean test(final Predicate<T> instance, final T value) {
+		return instance != null && instance.test(value);
+	}
+
+	private static <T, R, E extends Throwable> R apply(final FailableFunction<T, R, E> instance, final T value)
+			throws E {
+		return instance != null ? instance.apply(value) : null;
 	}
 
 	private static File toFile(final Path instance) {

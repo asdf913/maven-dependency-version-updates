@@ -2,7 +2,6 @@ package org.apache.commons.lang3;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Array;
 import java.lang.reflect.InvocationHandler;
@@ -17,10 +16,11 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Predicate;
 
 import javax.xml.stream.XMLInputFactory;
-import javax.xml.stream.XMLStreamException;
 
+import org.apache.commons.lang3.function.FailableFunction;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -32,7 +32,7 @@ public class UpdateVersionTest {
 
 	private static class IH implements InvocationHandler {
 
-		private Boolean contains;
+		private Boolean contains, test;
 
 		@Override
 		public Object invoke(final Object proxy, final Method method, final Object[] args) throws Throwable {
@@ -54,6 +54,14 @@ public class UpdateVersionTest {
 				return null;
 				//
 			} else if (proxy instanceof Path && Objects.equals(name, "toFile")) {
+				//
+				return null;
+				//
+			} else if (proxy instanceof Predicate && Objects.equals(name, "test")) {
+				//
+				return test;
+				//
+			} else if (proxy instanceof FailableFunction && Objects.equals(name, "apply")) {
 				//
 				return null;
 				//
@@ -134,7 +142,7 @@ public class UpdateVersionTest {
 		//
 		final IH ih = new IH();
 		//
-		ih.contains = Boolean.FALSE;
+		ih.contains = ih.test = Boolean.FALSE;
 		//
 		for (int i = 0; ms != null && i < ms.length; i++) {
 			//
@@ -216,7 +224,7 @@ public class UpdateVersionTest {
 	}
 
 	@Test
-	public void testMain() throws XMLStreamException, IOException, IllegalAccessException {
+	public void testMain() throws Exception {
 		//
 		UpdateVersion.main(new String[] { "=", "= ", " =", "== ", "file=" });
 		//
