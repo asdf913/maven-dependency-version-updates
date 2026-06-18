@@ -12,7 +12,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -20,6 +19,8 @@ import java.util.function.Predicate;
 import javax.xml.stream.XMLInputFactory;
 
 import org.apache.commons.lang3.function.FailableFunction;
+import org.d2ab.function.ObjIntFunction;
+import org.d2ab.function.ObjIntPredicate;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -56,11 +57,13 @@ public class UpdateVersionTest {
 				//
 				return null;
 				//
-			} else if (proxy instanceof Predicate && Objects.equals(name, "test")) {
+			} else if (Boolean.logicalOr(proxy instanceof Predicate, proxy instanceof ObjIntPredicate)
+					&& Objects.equals(name, "test")) {
 				//
 				return test;
 				//
-			} else if (proxy instanceof FailableFunction && Objects.equals(name, "apply")) {
+			} else if (Boolean.logicalOr(proxy instanceof FailableFunction, proxy instanceof ObjIntFunction)
+					&& Objects.equals(name, "apply")) {
 				//
 				return null;
 				//
@@ -87,17 +90,39 @@ public class UpdateVersionTest {
 		//
 		String toString = null;
 		//
+		Class<?>[] parameterTypes = null;
+		//
+		Collection<Object> collection = null;
+		//
 		for (int i = 0; ms != null && i < ms.length; i++) {
 			//
-			if ((m = ArrayUtils.get(ms, i)) == null || m.isSynthetic()) {
+			if ((m = ArrayUtils.get(ms, i)) == null || m.isSynthetic()
+					|| (parameterTypes = m.getParameterTypes()) == null) {
 				//
 				continue;
 				//
 			} // if
 				//
+
+			clear(collection = ObjectUtils.getIfNull(collection, ArrayList::new));
+			//
+			for (int j = 0; j < parameterTypes.length; j++) {
+				//
+				if (Objects.equals(ArrayUtils.get(parameterTypes, j), Integer.TYPE)) {
+					//
+					add(collection, Integer.valueOf(0));
+					//
+				} else {
+					//
+					add(collection, null);
+					//
+				} // if
+					//
+			} // for
+				//
 			toString = Objects.toString(m);
 			//
-			result = Narcissus.invokeStaticMethod(m, toArray(Collections.nCopies(m.getParameterCount(), null)));
+			result = Narcissus.invokeStaticMethod(m, toArray(collection));
 			//
 			if (contains(Arrays.asList(Integer.TYPE, Boolean.TYPE), getReturnType(m))) {
 				//
@@ -172,6 +197,10 @@ public class UpdateVersionTest {
 				} else if (Objects.equals(parameterType, InputStream.class)) {
 					//
 					add(collection, new ByteArrayInputStream(new byte[] {}));
+					//
+				} else if (Objects.equals(parameterType, Integer.TYPE)) {
+					//
+					add(collection, Integer.valueOf(0));
 					//
 				} else if (parameterType != null && parameterType.isArray()) {
 					//

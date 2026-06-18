@@ -20,6 +20,8 @@ import javax.xml.stream.XMLStreamReader;
 import org.apache.commons.collections4.IterableUtils;
 import org.apache.commons.lang3.function.FailableFunction;
 import org.apache.commons.lang3.reflect.FieldUtils;
+import org.d2ab.function.ObjIntFunction;
+import org.d2ab.function.ObjIntPredicate;
 
 public class UpdateVersion {
 
@@ -55,8 +57,6 @@ public class UpdateVersion {
 		String line, version = null;
 		//
 		Location location = null;
-		//
-		int indexOf = 0;
 		//
 		while (xmlStreamReader != null && xmlStreamReader.hasNext()) {
 			//
@@ -135,13 +135,11 @@ public class UpdateVersion {
 						&& (dependency = ObjectUtils.getIfNull(dependency, Dependency::new)) != null
 						&& (line = IterableUtils.get(lines, location.getLineNumber() - 1)) != null) {
 					//
-					dependency.versionIndexStart = (indexOf = line.indexOf("<version>")) >= 0
-							&& line.indexOf("<version>") == line.lastIndexOf("<version>") ? Integer.valueOf(indexOf)
-									: null;
+					dependency.versionIndexStart = testAndApply((a, b) -> a != null && b == a.lastIndexOf("<version>"),
+							line, line.indexOf("<version>"), (a, b) -> Integer.valueOf(b), null);
 					//
-					dependency.versionIndexEnd = (indexOf = line.indexOf("</version>")) >= 0
-							&& line.indexOf("</version>") == line.lastIndexOf("</version>") ? Integer.valueOf(indexOf)
-									: null;
+					dependency.versionIndexEnd = testAndApply((a, b) -> a != null && b == a.lastIndexOf("</version>"),
+							line, line.indexOf("</version>"), (a, b) -> Integer.valueOf(b), null);
 					//
 				} // if
 					//
@@ -151,6 +149,16 @@ public class UpdateVersion {
 			//
 		close(xmlStreamReader);
 		//
+	}
+
+	private static <T, R> R testAndApply(final ObjIntPredicate<T> predicate, final T object, final int integer,
+			final ObjIntFunction<T, R> functionTrue, final ObjIntFunction<T, R> functionFalse) {
+		return predicate != null && predicate.test(object, integer) ? apply(functionTrue, object, integer)
+				: apply(functionFalse, object, integer);
+	}
+
+	private static <T, R> R apply(final ObjIntFunction<T, R> instance, final T object, final int integer) {
+		return instance != null ? instance.apply(object, integer) : null;
 	}
 
 	private static <T, R, E extends Throwable> R testAndApply(final Predicate<T> predicate, final T value,
