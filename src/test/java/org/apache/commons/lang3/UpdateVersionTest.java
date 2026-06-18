@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
@@ -31,22 +32,26 @@ import org.testng.annotations.Test;
 import com.google.common.reflect.Reflection;
 
 import io.github.toolfactory.narcissus.Narcissus;
+import jakarta.xml.ws.Holder;
 
 public class UpdateVersionTest {
 
-	private static Method METHOD_AND = null;
+	private static Method METHOD_AND, METHOD_GET_CLASS = null;
 
 	@BeforeSuite
 	void beforeSuite() throws NoSuchMethodException {
 		//
-		(METHOD_AND = UpdateVersion.class.getDeclaredMethod("and", Boolean.TYPE, Boolean.TYPE, boolean[].class))
-				.setAccessible(true);
+		final Class<?> clz = UpdateVersion.class;
+		//
+		(METHOD_AND = clz.getDeclaredMethod("and", Boolean.TYPE, Boolean.TYPE, boolean[].class)).setAccessible(true);
+		//
+		(METHOD_GET_CLASS = clz.getDeclaredMethod("getClass", Object.class)).setAccessible(true);
 		//
 	}
 
 	private static class IH implements InvocationHandler {
 
-		private Boolean contains, test, containsKey, hasNext;
+		private Boolean contains, test, containsKey, hasNext, booleanValue;
 
 		private Integer next;
 
@@ -61,13 +66,6 @@ public class UpdateVersionTest {
 				//
 			final String name = getName(method);
 			//
-			if (Boolean.logicalAnd(Objects.equals(name, "toString"),
-					method != null && method.getParameterCount() == 0)) {
-				//
-				return null;
-				//
-			} // if
-				//
 			if (proxy instanceof Collection && Objects.equals(name, "contains")) {
 				//
 				return contains;
@@ -120,6 +118,10 @@ public class UpdateVersionTest {
 					//
 				} // if
 					//
+			} else if (proxy instanceof Entry && contains(Arrays.asList("getKey", "getValue"), name)) {
+				//
+				return null;
+				//
 			} else if (Boolean.logicalOr(proxy instanceof Predicate, proxy instanceof ObjIntPredicate)
 					&& Objects.equals(name, "test")) {
 				//
@@ -130,12 +132,35 @@ public class UpdateVersionTest {
 				//
 				return null;
 				//
+			} else if (isAssignableFrom(Class.forName("org.apache.commons.lang3.UpdateVersion$BooleanMap"),
+					UpdateVersionTest.getClass(proxy)) && Objects.equals(name, "getBoolean")) {
+				//
+				return booleanValue;
+				//
 			} // if
 				//
 			throw new Throwable(name);
 			//
 		}
 
+		private static boolean isAssignableFrom(final Class<?> a, final Class<?> b) {
+			return a != null && b != null && a.isAssignableFrom(b);
+		}
+
+	}
+
+	private static Class<?> getClass(final Object instance) throws Throwable {
+		try {
+			final Object obj = METHOD_GET_CLASS != null ? METHOD_GET_CLASS.invoke(null, instance) : null;
+			if (obj == null) {
+				return null;
+			} else if (obj instanceof Class<?>) {
+				return (Class<?>) obj;
+			}
+			throw new Throwable(Objects.toString(getClass(obj)));
+		} catch (final InvocationTargetException e) {
+			throw e.getTargetException();
+		}
 	}
 
 	private static Class<?> getReturnType(final Method instance) {
@@ -143,7 +168,7 @@ public class UpdateVersionTest {
 	}
 
 	@Test
-	void testNull() {
+	void testNull() throws ClassNotFoundException {
 		//
 		final Method[] ms = UpdateVersion.class.getDeclaredMethods();
 		//
@@ -188,7 +213,12 @@ public class UpdateVersionTest {
 			//
 			result = Narcissus.invokeStaticMethod(m, toArray(collection));
 			//
-			if (contains(Arrays.asList(Integer.TYPE, Boolean.TYPE), getReturnType(m))) {
+			if (contains(Arrays.asList(Integer.TYPE, Boolean.TYPE), getReturnType(m))
+					|| Boolean.logicalAnd(Objects.equals(getName(m), "execute"),
+							Arrays.equals(parameterTypes,
+									new Class<?>[] { XMLStreamReader.class, Map.class, Path.class, Iterable.class,
+											Holder.class,
+											Class.forName("org.apache.commons.lang3.UpdateVersion$BooleanMap") }))) {
 				//
 				Assert.assertNotNull(result, toString);
 				//
@@ -211,7 +241,7 @@ public class UpdateVersionTest {
 	}
 
 	@Test
-	void testNotNull() {
+	void testNotNull() throws ClassNotFoundException {
 		//
 		final Method[] ms = UpdateVersion.class.getDeclaredMethods();
 		//
@@ -229,7 +259,7 @@ public class UpdateVersionTest {
 		//
 		final IH ih = new IH();
 		//
-		ih.contains = ih.test = ih.containsKey = ih.hasNext = Boolean.FALSE;
+		ih.contains = ih.test = ih.containsKey = ih.hasNext = ih.booleanValue = Boolean.FALSE;
 		//
 		ih.next = Integer.valueOf(0);
 		//
@@ -292,7 +322,12 @@ public class UpdateVersionTest {
 					|| Boolean.logicalAnd(Objects.equals(name, "getClass"),
 							Arrays.equals(parameterTypes, new Class<?>[] { Object.class }))
 					|| Boolean.logicalAnd(Objects.equals(name, "filter"),
-							Arrays.equals(parameterTypes, new Class<?>[] { Stream.class, Predicate.class }))) {
+							Arrays.equals(parameterTypes, new Class<?>[] { Stream.class, Predicate.class }))
+					|| Boolean.logicalAnd(Objects.equals(name, "execute"),
+							Arrays.equals(parameterTypes,
+									new Class<?>[] { XMLStreamReader.class, Map.class, Path.class, Iterable.class,
+											Holder.class,
+											Class.forName("org.apache.commons.lang3.UpdateVersion$BooleanMap") }))) {
 				//
 				Assert.assertNotNull(result, toString);
 				//

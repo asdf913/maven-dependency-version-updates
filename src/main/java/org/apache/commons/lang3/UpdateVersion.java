@@ -4,7 +4,9 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Member;
+import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -12,6 +14,7 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
@@ -25,10 +28,14 @@ import javax.xml.stream.XMLStreamReader;
 import org.apache.commons.collections4.IterableUtils;
 import org.apache.commons.lang3.function.FailableFunction;
 import org.apache.commons.lang3.reflect.FieldUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.d2ab.function.ObjIntFunction;
 import org.d2ab.function.ObjIntPredicate;
 
+import com.google.common.reflect.Reflection;
+
 import io.github.toolfactory.narcissus.Narcissus;
+import jakarta.xml.ws.Holder;
 
 public class UpdateVersion {
 
@@ -38,6 +45,45 @@ public class UpdateVersion {
 
 		private Integer versionIndexStart, versionIndexEnd;
 
+	}
+
+	private static class IH implements InvocationHandler {
+
+		private Map<Object, Object> map = null;
+
+		@Override
+		public Object invoke(final Object proxy, final Method method, final Object[] args) throws Throwable {
+			//
+			final String name = getName(method);
+			//
+			if (proxy instanceof BooleanMap) {
+				//
+				if (Objects.equals(name, "getBoolean") && args != null && args.length > 0) {
+					//
+					final Object arg = ArrayUtils.get(args, 0);
+					//
+					if (!containsKey(map = ObjectUtils.getIfNull(map, LinkedHashMap::new), arg)) {
+						//
+						throw new IllegalStateException(Objects.toString(arg));
+						//
+					} // if
+						//
+					return get(map, arg);
+					//
+				} else if (Objects.equals(name, "setBoolean") && args != null && args.length > 1) {
+					//
+					put(map = ObjectUtils.getIfNull(map, LinkedHashMap::new), ArrayUtils.get(args, 0),
+							ArrayUtils.get(args, 1));
+					//
+					return null;
+					//
+				} // if
+					//
+			} // if
+				//
+			throw new Throwable(name);
+			//
+		}
 	}
 
 	public static void main(final String[] args) throws Exception {
@@ -53,84 +99,171 @@ public class UpdateVersion {
 		final XMLStreamReader xmlStreamReader = testAndApply(x -> isFile(toFile(x)), path,
 				x -> createXMLStreamReader(XMLInputFactory.newInstance(), Files.newInputStream(x)), null);
 		//
-		String localName = null;
-		//
-		boolean dependencies = false, exclusions = false;
-		//
-		int event = 0;
-		//
 		Dependency dependency = null;
 		//
-		String line = null;
+		Entry<BreakOrContinue, Dependency> entry = null;
 		//
-		Location location = null;
+		IH ih = null;
+		//
+		BooleanMap booleanMap = null;
 		//
 		while (hasNext(xmlStreamReader)) {
 			//
-			if ((event = next(xmlStreamReader)) == XMLStreamConstants.START_ELEMENT) {
+			if (booleanMap == null) {
 				//
-				if ((Boolean.logicalAnd(Objects.equals(localName = getLocalName(xmlStreamReader), "dependencies"),
-						!dependencies) && (dependencies = true)) || !dependencies
-						|| contains(Arrays.asList("dependency", "scope"), localName)
-						|| (Boolean.logicalAnd(Objects.equals(localName, "exclusions"), !exclusions)
-								&& (exclusions = true))
-						|| exclusions || getLocation(xmlStreamReader) == null) {
-					//
-					continue;
-					//
-				} // if
-					//
-			} else if (event == XMLStreamConstants.END_ELEMENT) {
+				BooleanMap.setBoolean(
+						booleanMap = Reflection.newProxy(BooleanMap.class, ih = ObjectUtils.getIfNull(ih, IH::new)),
+						"dependencies", false);
 				//
-				location = getLocation(xmlStreamReader);
+				BooleanMap.setBoolean(booleanMap, "exclusions", false);
 				//
-				if (Boolean.logicalAnd(Objects.equals(localName = getLocalName(xmlStreamReader), "dependencies"),
-						dependencies) && !(dependencies = false)) {
-					//
-					break;
-					//
-				} else if (Boolean.logicalOr(Objects.equals(localName, "scope"),
-						Boolean.logicalAnd(Objects.equals(localName, "exclusions"), exclusions)
-								&& !(exclusions = false))) {
-					//
-					continue;
-					//
-				} else if (Objects.equals(localName, "dependency")) {
-					//
-					updateVersion(dependency, map, path);
-					//
-					dependency = null;
-					//
-					continue;
-					//
-				} else if (and(contains(Arrays.asList("groupId", "artifactId", "version"), localName), dependencies,
-						!exclusions)) {
-					//
-					FieldUtils.writeDeclaredField(dependency = ObjectUtils.getIfNull(dependency, Dependency::new),
-							localName,
-							StringUtils.substringBetween(IterableUtils.get(lines, location.getLineNumber() - 1),
-									StringUtils.join("<", localName, ">"), StringUtils.join("</", localName, ">")),
-							true);
-					//
-				} // if
-					//
-				if (and(Objects.equals(localName, "version"), dependencies, !exclusions)
-						&& (dependency = ObjectUtils.getIfNull(dependency, Dependency::new)) != null
-						&& (line = IterableUtils.get(lines, location.getLineNumber() - 1)) != null) {
-					//
-					dependency.versionIndexStart = testAndApply((a, b) -> b == lastIndexOf(a, "<version>"), line,
-							line.indexOf("<version>"), (a, b) -> Integer.valueOf(b), null);
-					//
-					dependency.versionIndexEnd = testAndApply((a, b) -> b == lastIndexOf(a, "</version>"), line,
-							line.indexOf("</version>"), (a, b) -> Integer.valueOf(b), null);
-					//
-				} // if
-					//
+			} // if
+				//
+			if (Objects.equals(
+					getKey(entry = execute(xmlStreamReader, map, path, lines, new Holder<>(dependency), booleanMap)),
+					BreakOrContinue.Continue)) {
+				//
+				dependency = getValue(entry);
+				//
+				continue;
+				//
+			} else if (Objects.equals(entry != null ? entry.getKey() : null, BreakOrContinue.Break)) {
+				//
+				break;
+				//
+			} else {
+				//
+				dependency = getValue(entry);
+				//
 			} // if
 				//
 		} // while
 			//
 		close(xmlStreamReader);
+		//
+	}
+
+	private static <K> K getKey(final Entry<K, ?> instance) {
+		return instance != null ? instance.getKey() : null;
+	}
+
+	private static <V> V getValue(final Entry<?, V> instance) {
+		return instance != null ? instance.getValue() : null;
+	}
+
+	private static enum BreakOrContinue {
+		Break, Continue;
+	}
+
+	private static interface BooleanMap {
+
+		boolean getBoolean(final String key);
+
+		void setBoolean(final String key, final boolean value);
+
+		static boolean getBoolean(final BooleanMap instance, final String key) {
+			return instance != null && instance.getBoolean(key);
+		}
+
+		static void setBoolean(final BooleanMap instance, final String key, final boolean value) {
+			if (instance != null) {
+				instance.setBoolean(key, value);
+			}
+		}
+
+	}
+
+	private static Entry<BreakOrContinue, Dependency> execute(final XMLStreamReader xmlStreamReader,
+			final Map<String, String> map, final Path path, final Iterable<String> lines,
+			final Holder<Dependency> holder, final BooleanMap booleanMap)
+			throws XMLStreamException, IOException, IllegalAccessException {
+		//
+		String localName = null;
+		//
+		final boolean dependencies = BooleanMap.getBoolean(booleanMap, "dependencies");
+		//
+		final boolean exclusions = BooleanMap.getBoolean(booleanMap, "exclusions");
+		//
+		final int event = next(xmlStreamReader);
+		//
+		String line = null;
+		//
+		Location location = null;
+		//
+		Dependency dependency = holder != null ? holder.value : null;
+		//
+		if (event == XMLStreamConstants.START_ELEMENT) {
+			//
+			if (Boolean.logicalAnd(Objects.equals(localName = getLocalName(xmlStreamReader), "dependencies"),
+					!dependencies)) {
+				//
+				BooleanMap.setBoolean(booleanMap, "dependencies", true);
+				//
+				return Pair.of(BreakOrContinue.Continue, dependency);
+				//
+			} else if (Boolean.logicalAnd(Objects.equals(localName, "exclusions"), !exclusions)) {
+				//
+				BooleanMap.setBoolean(booleanMap, "exclusions", true);
+				//
+				return Pair.of(BreakOrContinue.Continue, dependency);
+				//
+			} else if (!dependencies || contains(Arrays.asList("dependency", "scope"), localName) || exclusions
+					|| getLocation(xmlStreamReader) == null) {
+				//
+				return Pair.of(BreakOrContinue.Continue, dependency);
+				//
+			} // if
+				//
+		} else if (event == XMLStreamConstants.END_ELEMENT) {
+			//
+			location = getLocation(xmlStreamReader);
+			//
+			if (Boolean.logicalAnd(Objects.equals(localName = getLocalName(xmlStreamReader), "dependencies"),
+					!dependencies)) {
+				//
+				BooleanMap.setBoolean(booleanMap, "dependencies", false);
+				//
+				return Pair.of(BreakOrContinue.Break, dependency);
+				//
+			} else if (Boolean.logicalOr(Objects.equals(localName, "scope"),
+					Boolean.logicalAnd(Objects.equals(localName, "exclusions"), !exclusions))) {
+				//
+				BooleanMap.setBoolean(booleanMap, "exclusions", false);
+				//
+				return Pair.of(BreakOrContinue.Continue, dependency);
+				//
+			} else if (Objects.equals(localName, "dependency")) {
+				//
+				updateVersion(dependency, map, path);
+				//
+				return Pair.of(BreakOrContinue.Continue, null);
+				//
+			} else if (and(contains(Arrays.asList("groupId", "artifactId", "version"), localName), dependencies,
+					!exclusions)) {
+				//
+				FieldUtils
+						.writeDeclaredField(dependency = ObjectUtils.getIfNull(dependency, Dependency::new), localName,
+								StringUtils.substringBetween(IterableUtils.get(lines, location.getLineNumber() - 1),
+										StringUtils.join("<", localName, ">"), StringUtils.join("</", localName, ">")),
+								true);
+				//
+			} // if
+				//
+			if (and(Objects.equals(localName, "version"), dependencies, !exclusions)
+					&& (dependency = ObjectUtils.getIfNull(dependency, Dependency::new)) != null
+					&& (line = IterableUtils.get(lines, location.getLineNumber() - 1)) != null) {
+				//
+				dependency.versionIndexStart = testAndApply((a, b) -> b == lastIndexOf(a, "<version>"), line,
+						line.indexOf("<version>"), (a, b) -> Integer.valueOf(b), null);
+				//
+				dependency.versionIndexEnd = testAndApply((a, b) -> b == lastIndexOf(a, "</version>"), line,
+						line.indexOf("</version>"), (a, b) -> Integer.valueOf(b), null);
+				//
+			} // if
+				//
+		} // if
+			//
+		return Pair.of(null, dependency);
 		//
 	}
 
