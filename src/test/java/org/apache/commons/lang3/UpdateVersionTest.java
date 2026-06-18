@@ -5,7 +5,6 @@ import java.io.File;
 import java.io.InputStream;
 import java.lang.reflect.Array;
 import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
@@ -123,8 +122,7 @@ public class UpdateVersionTest {
 	}
 
 	@Test
-	void testNotNull()
-			throws InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException {
+	void testNotNull() {
 		//
 		final Method[] ms = UpdateVersion.class.getDeclaredMethods();
 		//
