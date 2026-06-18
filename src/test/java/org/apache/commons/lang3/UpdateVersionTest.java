@@ -33,7 +33,7 @@ public class UpdateVersionTest {
 
 	private static class IH implements InvocationHandler {
 
-		private Boolean contains, test;
+		private Boolean contains, test, containsKey;
 
 		@Override
 		public Object invoke(final Object proxy, final Method method, final Object[] args) throws Throwable {
@@ -57,10 +57,18 @@ public class UpdateVersionTest {
 				//
 				return contains;
 				//
-			} else if (proxy instanceof Map && contains(Arrays.asList("put", "get"), name)) {
+			} else if (proxy instanceof Map) {
 				//
-				return null;
-				//
+				if (contains(Arrays.asList("put", "get"), name)) {
+					//
+					return null;
+					//
+				} else if (Objects.equals(name, "containsKey")) {
+					//
+					return containsKey;
+					//
+				} // if
+					//
 			} else if (proxy instanceof Path && Objects.equals(name, "toFile")) {
 				//
 				return null;
@@ -189,7 +197,7 @@ public class UpdateVersionTest {
 		//
 		final IH ih = new IH();
 		//
-		ih.contains = ih.test = Boolean.FALSE;
+		ih.contains = ih.test = ih.containsKey = Boolean.FALSE;
 		//
 		for (int i = 0; ms != null && i < ms.length; i++) {
 			//

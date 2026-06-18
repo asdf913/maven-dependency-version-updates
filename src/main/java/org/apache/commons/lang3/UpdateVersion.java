@@ -96,9 +96,9 @@ public class UpdateVersion {
 					//
 					if (dependency != null) {
 						//
-						if (map != null && Objects.equals(dependency.groupId, get(map, "groupId"))
+						if (Objects.equals(dependency.groupId, get(map, "groupId"))
 								&& Objects.equals(dependency.artifactId, get(map, "artifactId"))
-								&& map.containsKey("version")
+								&& containsKey(map, "version")
 								&& !Objects.equals(version = get(map, "version"), dependency.version)) {
 							//
 							final StringBuilder sb = new StringBuilder(ObjectUtils.getIfNull(
@@ -155,6 +155,10 @@ public class UpdateVersion {
 			//
 		close(xmlStreamReader);
 		//
+	}
+
+	private static boolean containsKey(final Map<?, ?> instance, final Object key) {
+		return instance != null && instance.containsKey(key);
 	}
 
 	private static int lastIndexOf(final String a, final String b) {
