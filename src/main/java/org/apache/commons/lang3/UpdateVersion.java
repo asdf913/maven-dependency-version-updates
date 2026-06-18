@@ -128,9 +128,10 @@ public class UpdateVersion {
 					continue;
 					//
 				} else if (and(contains(Arrays.asList("groupId", "artifactId", "version"), localName), dependencies,
-						!exclusions) && (dependency = ObjectUtils.getIfNull(dependency, Dependency::new)) != null) {
+						!exclusions)) {
 					//
-					FieldUtils.writeDeclaredField(dependency, localName,
+					FieldUtils.writeDeclaredField(dependency = ObjectUtils.getIfNull(dependency, Dependency::new),
+							localName,
 							StringUtils.substringBetween(IterableUtils.get(lines, location.getLineNumber() - 1),
 									StringUtils.join("<", localName, ">"), StringUtils.join("</", localName, ">")),
 							true);
