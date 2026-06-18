@@ -127,9 +127,8 @@ public class UpdateVersion {
 						//
 					continue;
 					//
-				} else if (Boolean.logicalAnd(contains(Arrays.asList("groupId", "artifactId", "version"), localName),
-						dependencies) && !exclusions
-						&& (dependency = ObjectUtils.getIfNull(dependency, Dependency::new)) != null) {
+				} else if (and(contains(Arrays.asList("groupId", "artifactId", "version"), localName), dependencies,
+						!exclusions) && (dependency = ObjectUtils.getIfNull(dependency, Dependency::new)) != null) {
 					//
 					FieldUtils.writeDeclaredField(dependency, localName,
 							StringUtils.substringBetween(IterableUtils.get(lines, location.getLineNumber() - 1),
@@ -155,6 +154,30 @@ public class UpdateVersion {
 		} // while
 			//
 		close(xmlStreamReader);
+		//
+	}
+
+	private static boolean and(final boolean a, final boolean b, final boolean... bs) {
+		//
+		boolean result = a && b;
+		//
+		if (!result) {
+			//
+			return result;
+			//
+		} // if
+			//
+		for (int i = 0; bs != null && i < bs.length; i++) {
+			//
+			if (!(result &= bs[i])) {
+				//
+				return result;
+				//
+			} // if
+				//
+		} // for
+			//
+		return result;
 		//
 	}
 

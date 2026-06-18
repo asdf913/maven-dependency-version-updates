@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.InputStream;
 import java.lang.reflect.Array;
 import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
@@ -23,6 +24,7 @@ import org.apache.commons.lang3.function.FailableFunction;
 import org.d2ab.function.ObjIntFunction;
 import org.d2ab.function.ObjIntPredicate;
 import org.testng.Assert;
+import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.Test;
 
 import com.google.common.reflect.Reflection;
@@ -30,6 +32,16 @@ import com.google.common.reflect.Reflection;
 import io.github.toolfactory.narcissus.Narcissus;
 
 public class UpdateVersionTest {
+
+	private static Method METHOD_AND = null;
+
+	@BeforeSuite
+	void beforeSuite() throws NoSuchMethodException {
+		//
+		(METHOD_AND = UpdateVersion.class.getDeclaredMethod("and", Boolean.TYPE, Boolean.TYPE, boolean[].class))
+				.setAccessible(true);
+		//
+	}
 
 	private static class IH implements InvocationHandler {
 
@@ -129,13 +141,14 @@ public class UpdateVersionTest {
 		for (int i = 0; ms != null && i < ms.length; i++) {
 			//
 			if ((m = ArrayUtils.get(ms, i)) == null || m.isSynthetic()
-					|| (parameterTypes = m.getParameterTypes()) == null) {
+					|| (parameterTypes = m.getParameterTypes()) == null
+					|| Boolean.logicalAnd(Objects.equals(getName(m), "and"), Arrays.equals(parameterTypes,
+							new Class[] { Boolean.TYPE, Boolean.TYPE, boolean[].class }))) {
 				//
 				continue;
 				//
 			} // if
 				//
-
 			clear(collection = ObjectUtils.getIfNull(collection, ArrayList::new));
 			//
 			for (int j = 0; j < parameterTypes.length; j++) {
@@ -203,8 +216,10 @@ public class UpdateVersionTest {
 			//
 			if ((m = ArrayUtils.get(ms, i)) == null || m.isSynthetic()
 					|| (parameterTypes = m.getParameterTypes()) == null
-					|| Boolean.logicalAnd(Objects.equals(getName(m), "toMap"),
-							Arrays.equals(parameterTypes, new Class[] { String[].class }))) {
+					|| Boolean.logicalAnd(Objects.equals(name = getName(m), "toMap"),
+							Arrays.equals(parameterTypes, new Class[] { String[].class }))
+					|| Boolean.logicalAnd(Objects.equals(name, "and"), Arrays.equals(parameterTypes,
+							new Class[] { Boolean.TYPE, Boolean.TYPE, boolean[].class }))) {
 				//
 				continue;
 				//
@@ -320,6 +335,19 @@ public class UpdateVersionTest {
 			//
 		} // if
 			//
+	}
+
+	@Test
+	public void testAnd() throws IllegalAccessException, InvocationTargetException {
+		//
+		Assert.assertEquals(METHOD_AND != null ? METHOD_AND.invoke(null, Boolean.TRUE, Boolean.TRUE, null) : null,
+				Boolean.TRUE);
+		//
+		Assert.assertEquals(
+				METHOD_AND != null ? METHOD_AND.invoke(null, Boolean.TRUE, Boolean.TRUE, new boolean[] { false })
+						: null,
+				Boolean.TRUE);
+		//
 	}
 
 }
