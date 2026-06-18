@@ -65,16 +65,16 @@ public class UpdateVersion {
 		//
 		Location location = null;
 		//
-		while (xmlStreamReader != null && xmlStreamReader.hasNext()) {
+		while (hasNext(xmlStreamReader)) {
 			//
-			if ((event = xmlStreamReader.next()) == XMLStreamConstants.START_ELEMENT) {
+			if ((event = next(xmlStreamReader)) == XMLStreamConstants.START_ELEMENT) {
 				//
-				if ((Boolean.logicalAnd(Objects.equals(localName = xmlStreamReader.getLocalName(), "dependencies"),
+				if ((Boolean.logicalAnd(Objects.equals(localName = getLocalName(xmlStreamReader), "dependencies"),
 						!dependencies) && (dependencies = true)) || !dependencies
 						|| contains(Arrays.asList("dependency", "scope"), localName)
 						|| (Boolean.logicalAnd(Objects.equals(localName, "exclusions"), !exclusions)
 								&& (exclusions = true))
-						|| exclusions || xmlStreamReader.getLocation() == null) {
+						|| exclusions || getLocation(xmlStreamReader) == null) {
 					//
 					continue;
 					//
@@ -82,9 +82,9 @@ public class UpdateVersion {
 					//
 			} else if (event == XMLStreamConstants.END_ELEMENT) {
 				//
-				location = xmlStreamReader.getLocation();
+				location = getLocation(xmlStreamReader);
 				//
-				if (Boolean.logicalAnd(Objects.equals(localName = xmlStreamReader.getLocalName(), "dependencies"),
+				if (Boolean.logicalAnd(Objects.equals(localName = getLocalName(xmlStreamReader), "dependencies"),
 						dependencies) && !(dependencies = false)) {
 					//
 					break;
@@ -132,6 +132,22 @@ public class UpdateVersion {
 			//
 		close(xmlStreamReader);
 		//
+	}
+
+	private static Location getLocation(final XMLStreamReader instance) {
+		return instance != null ? instance.getLocation() : null;
+	}
+
+	private static String getLocalName(final XMLStreamReader instance) {
+		return instance != null ? instance.getLocalName() : null;
+	}
+
+	private static int next(final XMLStreamReader instance) throws XMLStreamException {
+		return instance != null ? instance.next() : 0;
+	}
+
+	private static boolean hasNext(final XMLStreamReader instance) throws XMLStreamException {
+		return instance != null && instance.hasNext();
 	}
 
 	private static void updateVersion(final Dependency dependency, final Map<String, String> map, final Path path)

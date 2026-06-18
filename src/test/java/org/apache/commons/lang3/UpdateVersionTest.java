@@ -19,6 +19,7 @@ import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLStreamReader;
 
 import org.apache.commons.lang3.function.FailableFunction;
 import org.d2ab.function.ObjIntFunction;
@@ -45,7 +46,9 @@ public class UpdateVersionTest {
 
 	private static class IH implements InvocationHandler {
 
-		private Boolean contains, test, containsKey;
+		private Boolean contains, test, containsKey, hasNext;
+
+		private Integer next;
 
 		@Override
 		public Object invoke(final Object proxy, final Method method, final Object[] args) throws Throwable {
@@ -98,6 +101,22 @@ public class UpdateVersionTest {
 				} else if (Objects.equals(name, "filter")) {
 					//
 					return proxy;
+					//
+				} // if
+					//
+			} else if (proxy instanceof XMLStreamReader) {
+				//
+				if (Objects.equals(name, "hasNext")) {
+					//
+					return hasNext;
+					//
+				} else if (Objects.equals(name, "next")) {
+					//
+					return next;
+					//
+				} else if (contains(Arrays.asList("getLocation", "getLocalName"), name)) {
+					//
+					return null;
 					//
 				} // if
 					//
@@ -210,7 +229,9 @@ public class UpdateVersionTest {
 		//
 		final IH ih = new IH();
 		//
-		ih.contains = ih.test = ih.containsKey = Boolean.FALSE;
+		ih.contains = ih.test = ih.containsKey = ih.hasNext = Boolean.FALSE;
+		//
+		ih.next = Integer.valueOf(0);
 		//
 		for (int i = 0; ms != null && i < ms.length; i++) {
 			//
