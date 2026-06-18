@@ -54,7 +54,10 @@ public class UpdateVersion {
 		@Note("Group ID")
 		private String groupId;
 
-		private String artifactId, version;
+		@Note("Artifact ID")
+		private String artifactId;
+
+		private String version;
 
 		@Note("Version Index Start")
 		private Integer versionIndexStart;
