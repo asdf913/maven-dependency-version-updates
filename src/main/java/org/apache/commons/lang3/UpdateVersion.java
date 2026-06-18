@@ -87,8 +87,8 @@ public class UpdateVersion {
 					//
 					break;
 					//
-				} else if (Objects.equals(localName, "scope")
-						|| (Objects.equals(localName, "exclusions") && exclusions && !(exclusions = false))) {
+				} else if (Boolean.logicalOr(Objects.equals(localName, "scope"),
+						Objects.equals(localName, "exclusions") && exclusions && !(exclusions = false))) {
 					//
 					continue;
 					//
