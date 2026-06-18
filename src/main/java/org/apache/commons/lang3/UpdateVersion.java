@@ -1,6 +1,7 @@
 package org.apache.commons.lang3;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Member;
@@ -60,7 +61,7 @@ public class UpdateVersion {
 		//
 		Dependency dependency = null;
 		//
-		String line, version = null;
+		String line = null;
 		//
 		Location location = null;
 		//
@@ -94,37 +95,10 @@ public class UpdateVersion {
 					//
 				} else if (Objects.equals(localName, "dependency")) {
 					//
-					if (dependency != null) {
-						//
-						if (Objects.equals(dependency.groupId, get(map, "groupId"))
-								&& Objects.equals(dependency.artifactId, get(map, "artifactId"))
-								&& containsKey(map, "version")
-								&& !Objects.equals(version = get(map, "version"), dependency.version)) {
-							//
-							final StringBuilder sb = new StringBuilder(ObjectUtils.getIfNull(
-									testAndApply(x -> isFile(toFile(x)), path, Files::readString, null), ""));
-							//
-							if (dependency.versionIndexStart != null && dependency.versionIndexEnd != null) {
-								//
-								sb.delete(dependency.versionIndexStart, dependency.versionIndexEnd);
-								//
-							} // if
-								//
-							System.out.println(String.format("groupId=%1$s,artifactId=%2$s,version=[%3$s->%4$s]",
-									dependency.groupId, dependency.artifactId, dependency.version, version));
-							//
-							Files.writeString(path,
-									dependency.versionIndexStart != null
-											? sb.insert(dependency.versionIndexStart,
-													String.join("", "<version>", version))
-											: sb);
-							//
-						} // if
-							//
-						dependency = null;
-						//
-					} // if
-						//
+					updateVersion(dependency, map, path);
+					//
+					dependency = null;
+					//
 					continue;
 					//
 				} else if (and(contains(Arrays.asList("groupId", "artifactId", "version"), localName), dependencies,
@@ -156,6 +130,40 @@ public class UpdateVersion {
 			//
 		close(xmlStreamReader);
 		//
+	}
+
+	private static void updateVersion(final Dependency dependency, final Map<String, String> map, final Path path)
+			throws IOException {
+		//
+		if (dependency != null) {
+			//
+			String version = null;
+			//
+			if (Objects.equals(dependency.groupId, get(map, "groupId"))
+					&& Objects.equals(dependency.artifactId, get(map, "artifactId")) && containsKey(map, "version")
+					&& !Objects.equals(version = get(map, "version"), dependency.version)) {
+				//
+				final StringBuilder sb = new StringBuilder(
+						ObjectUtils.getIfNull(testAndApply(x -> isFile(toFile(x)), path, Files::readString, null), ""));
+				//
+				if (dependency.versionIndexStart != null && dependency.versionIndexEnd != null) {
+					//
+					sb.delete(dependency.versionIndexStart, dependency.versionIndexEnd);
+					//
+				} // if
+					//
+				System.out.println(String.format("groupId=%1$s,artifactId=%2$s,version=[%3$s->%4$s]",
+						dependency.groupId, dependency.artifactId, dependency.version, version));
+				//
+				Files.writeString(path,
+						dependency.versionIndexStart != null
+								? sb.insert(dependency.versionIndexStart, String.join("", "<version>", version))
+								: sb);
+				//
+			} // if
+				//
+		} // if
+			//
 	}
 
 	private static boolean and(final boolean a, final boolean b, final boolean... bs) {
