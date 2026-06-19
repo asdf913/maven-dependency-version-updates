@@ -45,6 +45,8 @@ public class UpdateVersion {
 
 	private static final String DEPENDENCIES = "dependencies";
 
+	private static final String EXCLUSIONS = "exclusions";
+
 	@Target(ElementType.FIELD)
 	@Retention(RetentionPolicy.RUNTIME)
 	private @interface Note {
@@ -136,7 +138,7 @@ public class UpdateVersion {
 						booleanMap = Reflection.newProxy(BooleanMap.class, ih = ObjectUtils.getIfNull(ih, IH::new)),
 						DEPENDENCIES, false);
 				//
-				BooleanMap.setBoolean(booleanMap, "exclusions", false);
+				BooleanMap.setBoolean(booleanMap, EXCLUSIONS, false);
 				//
 			} // if
 				//
@@ -203,7 +205,7 @@ public class UpdateVersion {
 		//
 		final boolean dependencies = BooleanMap.getBoolean(booleanMap, DEPENDENCIES);
 		//
-		final boolean exclusions = BooleanMap.getBoolean(booleanMap, "exclusions");
+		final boolean exclusions = BooleanMap.getBoolean(booleanMap, EXCLUSIONS);
 		//
 		final int event = next(xmlStreamReader);
 		//
@@ -222,9 +224,9 @@ public class UpdateVersion {
 				//
 				return Pair.of(BreakOrContinue.Continue, dependency);
 				//
-			} else if (Boolean.logicalAnd(Objects.equals(localName, "exclusions"), !exclusions)) {
+			} else if (Boolean.logicalAnd(Objects.equals(localName, EXCLUSIONS), !exclusions)) {
 				//
-				BooleanMap.setBoolean(booleanMap, "exclusions", true);
+				BooleanMap.setBoolean(booleanMap, EXCLUSIONS, true);
 				//
 				return Pair.of(BreakOrContinue.Continue, dependency);
 				//
@@ -247,9 +249,9 @@ public class UpdateVersion {
 				return Pair.of(BreakOrContinue.Break, dependency);
 				//
 			} else if (Boolean.logicalOr(Objects.equals(localName, "scope"),
-					Boolean.logicalAnd(Objects.equals(localName, "exclusions"), !exclusions))) {
+					Boolean.logicalAnd(Objects.equals(localName, EXCLUSIONS), !exclusions))) {
 				//
-				BooleanMap.setBoolean(booleanMap, "exclusions", false);
+				BooleanMap.setBoolean(booleanMap, EXCLUSIONS, false);
 				//
 				return Pair.of(BreakOrContinue.Continue, dependency);
 				//
