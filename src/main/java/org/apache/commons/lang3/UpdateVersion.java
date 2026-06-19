@@ -43,6 +43,8 @@ import jakarta.xml.ws.Holder;
 
 public class UpdateVersion {
 
+	private static final String DEPENDENCIES = "dependencies";
+
 	@Target(ElementType.FIELD)
 	@Retention(RetentionPolicy.RUNTIME)
 	private @interface Note {
@@ -132,7 +134,7 @@ public class UpdateVersion {
 				//
 				BooleanMap.setBoolean(
 						booleanMap = Reflection.newProxy(BooleanMap.class, ih = ObjectUtils.getIfNull(ih, IH::new)),
-						"dependencies", false);
+						DEPENDENCIES, false);
 				//
 				BooleanMap.setBoolean(booleanMap, "exclusions", false);
 				//
@@ -199,7 +201,7 @@ public class UpdateVersion {
 		//
 		String localName = null;
 		//
-		final boolean dependencies = BooleanMap.getBoolean(booleanMap, "dependencies");
+		final boolean dependencies = BooleanMap.getBoolean(booleanMap, DEPENDENCIES);
 		//
 		final boolean exclusions = BooleanMap.getBoolean(booleanMap, "exclusions");
 		//
@@ -213,10 +215,10 @@ public class UpdateVersion {
 		//
 		if (event == XMLStreamConstants.START_ELEMENT) {
 			//
-			if (Boolean.logicalAnd(Objects.equals(localName = getLocalName(xmlStreamReader), "dependencies"),
+			if (Boolean.logicalAnd(Objects.equals(localName = getLocalName(xmlStreamReader), DEPENDENCIES),
 					!dependencies)) {
 				//
-				BooleanMap.setBoolean(booleanMap, "dependencies", true);
+				BooleanMap.setBoolean(booleanMap, DEPENDENCIES, true);
 				//
 				return Pair.of(BreakOrContinue.Continue, dependency);
 				//
@@ -237,10 +239,10 @@ public class UpdateVersion {
 			//
 			location = getLocation(xmlStreamReader);
 			//
-			if (Boolean.logicalAnd(Objects.equals(localName = getLocalName(xmlStreamReader), "dependencies"),
+			if (Boolean.logicalAnd(Objects.equals(localName = getLocalName(xmlStreamReader), DEPENDENCIES),
 					!dependencies)) {
 				//
-				BooleanMap.setBoolean(booleanMap, "dependencies", false);
+				BooleanMap.setBoolean(booleanMap, DEPENDENCIES, false);
 				//
 				return Pair.of(BreakOrContinue.Break, dependency);
 				//
