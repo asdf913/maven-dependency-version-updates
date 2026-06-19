@@ -47,6 +47,8 @@ public class UpdateVersion {
 
 	private static final String EXCLUSIONS = "exclusions";
 
+	private static final String VERSION = "version";
+
 	@Target(ElementType.FIELD)
 	@Retention(RetentionPolicy.RUNTIME)
 	private @interface Note {
@@ -261,7 +263,7 @@ public class UpdateVersion {
 				//
 				return Pair.of(BreakOrContinue.Continue, null);
 				//
-			} else if (and(contains(Arrays.asList("groupId", "artifactId", "version"), localName), dependencies,
+			} else if (and(contains(Arrays.asList("groupId", "artifactId", VERSION), localName), dependencies,
 					!exclusions)) {
 				//
 				FieldUtils
@@ -272,7 +274,7 @@ public class UpdateVersion {
 				//
 			} // if
 				//
-			if (and(Objects.equals(localName, "version"), dependencies, !exclusions)
+			if (and(Objects.equals(localName, VERSION), dependencies, !exclusions)
 					&& (dependency = ObjectUtils.getIfNull(dependency, Dependency::new)) != null
 					&& (line = IterableUtils.get(lines, location.getLineNumber() - 1)) != null) {
 				//
@@ -318,8 +320,8 @@ public class UpdateVersion {
 			String version = null;
 			//
 			if (Objects.equals(dependency.groupId, get(map, "groupId"))
-					&& Objects.equals(dependency.artifactId, get(map, "artifactId")) && containsKey(map, "version")
-					&& !Objects.equals(version = get(map, "version"), dependency.version)) {
+					&& Objects.equals(dependency.artifactId, get(map, "artifactId")) && containsKey(map, VERSION)
+					&& !Objects.equals(version = get(map, VERSION), dependency.version)) {
 				//
 				final StringBuilder sb = new StringBuilder(
 						ObjectUtils.getIfNull(testAndApply(x -> isFile(toFile(x)), path, Files::readString, null), ""));
