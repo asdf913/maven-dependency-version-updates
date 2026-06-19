@@ -150,8 +150,6 @@ public class UpdateVersion {
 				//
 				dependency = getValue(entry);
 				//
-				continue;
-				//
 			} else if (Objects.equals(entry != null ? entry.getKey() : null, BreakOrContinue.Break)) {
 				//
 				break;
