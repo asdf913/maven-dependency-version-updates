@@ -2,52 +2,43 @@ package org.apache.commons.lang3;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Member;
-import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-import javax.xml.stream.Location;
-import javax.xml.stream.XMLInputFactory;
-import javax.xml.stream.XMLStreamConstants;
-import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.XMLStreamReader;
+import javax.xml.namespace.QName;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpressionException;
+import javax.xml.xpath.XPathFactory;
 
 import org.apache.commons.collections4.IterableUtils;
 import org.apache.commons.lang3.function.FailableFunction;
 import org.apache.commons.lang3.reflect.FieldUtils;
-import org.apache.commons.lang3.tuple.Pair;
-import org.d2ab.function.ObjIntFunction;
-import org.d2ab.function.ObjIntPredicate;
-
-import com.google.common.reflect.Reflection;
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 import io.github.toolfactory.narcissus.Narcissus;
-import jakarta.xml.ws.Holder;
 
 public class UpdateVersion {
-
-	private static final String DEPENDENCIES = "dependencies";
-
-	private static final String EXCLUSIONS = "exclusions";
-
-	private static final String VERSION = "version";
 
 	@Target(ElementType.FIELD)
 	@Retention(RetentionPolicy.RUNTIME)
@@ -63,52 +54,6 @@ public class UpdateVersion {
 		@Note("Artifact ID")
 		private String artifactId;
 
-		private String version;
-
-		@Note("Version Index Start")
-		private Integer versionIndexStart;
-
-		private Integer versionIndexEnd;
-
-	}
-
-	private static class IH implements InvocationHandler {
-
-		private Map<Object, Object> map = null;
-
-		@Override
-		public Object invoke(final Object proxy, final Method method, final Object[] args) throws Throwable {
-			//
-			final String name = getName(method);
-			//
-			if (proxy instanceof BooleanMap) {
-				//
-				if (Objects.equals(name, "getBoolean") && args != null && args.length > 0) {
-					//
-					final Object arg = ArrayUtils.get(args, 0);
-					//
-					if (!containsKey(map = ObjectUtils.getIfNull(map, LinkedHashMap::new), arg)) {
-						//
-						throw new IllegalStateException(Objects.toString(arg));
-						//
-					} // if
-						//
-					return get(map, arg);
-					//
-				} else if (Objects.equals(name, "setBoolean") && args != null && args.length > 1) {
-					//
-					put(map = ObjectUtils.getIfNull(map, LinkedHashMap::new), ArrayUtils.get(args, 0),
-							ArrayUtils.get(args, 1));
-					//
-					return null;
-					//
-				} // if
-					//
-			} // if
-				//
-			throw new Throwable(name);
-			//
-		}
 	}
 
 	public static void main(final String[] args) throws Exception {
@@ -119,260 +64,83 @@ public class UpdateVersion {
 		//
 		final Path path = testAndApply(Objects::nonNull, file, Path::of, null);
 		//
-		final Iterable<String> lines = testAndApply(x -> isFile(toFile(x)), path, Files::readAllLines, null);
-		//
-		final XMLStreamReader xmlStreamReader = testAndApply(x -> isFile(toFile(x)), path,
-				x -> createXMLStreamReader(XMLInputFactory.newInstance(), Files.newInputStream(x)), null);
-		//
-		Dependency dependency = null;
-		//
-		Entry<BreakOrContinue, Dependency> entry = null;
-		//
-		IH ih = null;
-		//
-		BooleanMap booleanMap = null;
-		//
-		while (hasNext(xmlStreamReader)) {
+		if (!isFile(toFile(path))) {
 			//
-			if (booleanMap == null) {
+			System.out.println("Please select a file");
+			//
+			return;
+			//
+		} // if
+			//
+		try {
+			//
+			final XPath xp = newXPath(XPathFactory.newDefaultInstance());
+			//
+			final NodeList nodeList = cast(NodeList.class, evaluate(xp,
+					"/*[local-name()=\"project\"]/*[local-name()=\"dependencies\"]/*[local-name()=\"dependency\"]",
+					parse(newDocumentBuilder(DocumentBuilderFactory.newDefaultInstance()), toFile(path)),
+					XPathConstants.NODESET));
+			//
+			Dependency dependency = null;
+			//
+			Node node = null;
+			//
+			Collection<Dependency> dependencies = null;
+			//
+			for (int i = 0; i < getLength(nodeList); i++) {
 				//
-				BooleanMap.setBoolean(
-						booleanMap = Reflection.newProxy(BooleanMap.class, ih = ObjectUtils.getIfNull(ih, IH::new)),
-						DEPENDENCIES, false);
+				(dependency = new Dependency()).groupId = Objects.toString(
+						evaluate(xp, "*[local-name()=\"groupId\"]", node = item(nodeList, i), XPathConstants.STRING));
 				//
-				BooleanMap.setBoolean(booleanMap, EXCLUSIONS, false);
+				dependency.artifactId = Objects
+						.toString(evaluate(xp, "*[local-name()=\"artifactId\"]", node, XPathConstants.STRING));
 				//
-			} // if
+				add(dependencies = ObjectUtils.getIfNull(dependencies, ArrayList::new), dependency);
 				//
-			if (Objects.equals(
-					getKey(entry = execute(xmlStreamReader, map, path, lines, new Holder<>(dependency), booleanMap)),
-					BreakOrContinue.Continue)) {
+			} // for
 				//
-				dependency = getValue(entry);
+			final String groupId = get(map, "groupId");
+			//
+			final String artifactId = get(map, "artifactId");
+			//
+			if (IterableUtils.isEmpty(dependencies = toList(filter(stream(dependencies), x -> x != null
+					&& Objects.equals(x.groupId, groupId) && Objects.equals(x.artifactId, artifactId))))) {
 				//
-			} else if (Objects.equals(entry != null ? entry.getKey() : null, BreakOrContinue.Break)) {
+				System.out.println("No dependency found");
 				//
-				break;
+			} else if (IterableUtils.size(dependencies) > 1) {
+				//
+				System.out.println("More than one dependency definition found");
 				//
 			} else {
 				//
-				dependency = getValue(entry);
+				final String string = Files.readString(path);
+				//
+				final int index1 = indexOf(string, String.format("<%1$s>%2$s</%1$s>", "groupId", groupId));
+				//
+				final int index2 = indexOf(string, String.format("<%1$s>%2$s</%1$s>", "artifactId", artifactId));
+				//
+				final int index3 = indexOf(string, "<version>", Math.max(index1, index2)) + 9;
+				//
+				final int index4 = indexOf(string, "</version>", Math.max(index1, index2));
+				//
+				final StringBuilder sb = new StringBuilder(ObjectUtils.getIfNull(string, ""));
+				//
+				sb.delete(index3, index4);
+				//
+				Files.writeString(path, sb.insert(index3, get(map, "version")));
 				//
 			} // if
 				//
-		} // while
+		} catch (final ParserConfigurationException | SAXException | IOException | XPathExpressionException e) {
 			//
-		close(xmlStreamReader);
-		//
-	}
-
-	private static <K> K getKey(final Entry<K, ?> instance) {
-		return instance != null ? instance.getKey() : null;
-	}
-
-	private static <V> V getValue(final Entry<?, V> instance) {
-		return instance != null ? instance.getValue() : null;
-	}
-
-	private static enum BreakOrContinue {
-		Break, Continue;
-	}
-
-	private static interface BooleanMap {
-
-		boolean getBoolean(final String key);
-
-		void setBoolean(final String key, final boolean value);
-
-		static boolean getBoolean(final BooleanMap instance, final String key) {
-			return instance != null && instance.getBoolean(key);
-		}
-
-		static void setBoolean(final BooleanMap instance, final String key, final boolean value) {
-			if (instance != null) {
-				instance.setBoolean(key, value);
-			}
-		}
-
-	}
-
-	private static Entry<BreakOrContinue, Dependency> execute(final XMLStreamReader xmlStreamReader,
-			final Map<String, String> map, final Path path, final Iterable<String> lines,
-			final Holder<Dependency> holder, final BooleanMap booleanMap)
-			throws XMLStreamException, IOException, IllegalAccessException {
-		//
-		String localName = null;
-		//
-		final boolean dependencies = BooleanMap.getBoolean(booleanMap, DEPENDENCIES);
-		//
-		final boolean exclusions = BooleanMap.getBoolean(booleanMap, EXCLUSIONS);
-		//
-		final int event = next(xmlStreamReader);
-		//
-		String line = null;
-		//
-		Location location = null;
-		//
-		Dependency dependency = value(holder);
-		//
-		if (event == XMLStreamConstants.START_ELEMENT) {
+			throw new RuntimeException(e);
 			//
-			if (Boolean.logicalAnd(Objects.equals(localName = getLocalName(xmlStreamReader), DEPENDENCIES),
-					!dependencies)) {
-				//
-				BooleanMap.setBoolean(booleanMap, DEPENDENCIES, true);
-				//
-				return Pair.of(BreakOrContinue.Continue, dependency);
-				//
-			} else if (Boolean.logicalAnd(Objects.equals(localName, EXCLUSIONS), !exclusions)) {
-				//
-				BooleanMap.setBoolean(booleanMap, EXCLUSIONS, true);
-				//
-				return Pair.of(BreakOrContinue.Continue, dependency);
-				//
-			} else if (!dependencies || contains(Arrays.asList("dependency", "scope"), localName) || exclusions
-					|| getLocation(xmlStreamReader) == null) {
-				//
-				return Pair.of(BreakOrContinue.Continue, dependency);
-				//
-			} // if
-				//
-		} else if (event == XMLStreamConstants.END_ELEMENT) {
-			//
-			location = getLocation(xmlStreamReader);
-			//
-			if (Boolean.logicalAnd(Objects.equals(localName = getLocalName(xmlStreamReader), DEPENDENCIES),
-					!dependencies)) {
-				//
-				BooleanMap.setBoolean(booleanMap, DEPENDENCIES, false);
-				//
-				return Pair.of(BreakOrContinue.Break, dependency);
-				//
-			} else if (Boolean.logicalOr(Objects.equals(localName, "scope"),
-					Boolean.logicalAnd(Objects.equals(localName, EXCLUSIONS), !exclusions))) {
-				//
-				BooleanMap.setBoolean(booleanMap, EXCLUSIONS, false);
-				//
-				return Pair.of(BreakOrContinue.Continue, dependency);
-				//
-			} else if (Objects.equals(localName, "dependency")) {
-				//
-				updateVersion(dependency, map, path);
-				//
-				return Pair.of(BreakOrContinue.Continue, null);
-				//
-			} else if (and(contains(Arrays.asList("groupId", "artifactId", VERSION), localName), dependencies,
-					!exclusions)) {
-				//
-				FieldUtils
-						.writeDeclaredField(dependency = ObjectUtils.getIfNull(dependency, Dependency::new), localName,
-								StringUtils.substringBetween(IterableUtils.get(lines, location.getLineNumber() - 1),
-										StringUtils.join("<", localName, ">"), StringUtils.join("</", localName, ">")),
-								true);
-				//
-			} // if
-				//
-			if (and(Objects.equals(localName, VERSION), dependencies, !exclusions)
-					&& (dependency = ObjectUtils.getIfNull(dependency, Dependency::new)) != null
-					&& (line = IterableUtils.get(lines, location.getLineNumber() - 1)) != null) {
-				//
-				dependency.versionIndexStart = testAndApply((a, b) -> b == lastIndexOf(a, "<version>"), line,
-						line.indexOf("<version>"), (a, b) -> Integer.valueOf(b), null);
-				//
-				dependency.versionIndexEnd = testAndApply((a, b) -> b == lastIndexOf(a, "</version>"), line,
-						line.indexOf("</version>"), (a, b) -> Integer.valueOf(b), null);
-				//
-			} // if
-				//
-		} // if
-			//
-		return Pair.of(null, dependency);
-		//
-	}
-
-	private static <T> T value(final Holder<T> instance) {
-		return instance != null ? instance.value : null;
-	}
-
-	private static Location getLocation(final XMLStreamReader instance) {
-		return instance != null ? instance.getLocation() : null;
-	}
-
-	private static String getLocalName(final XMLStreamReader instance) {
-		return instance != null ? instance.getLocalName() : null;
-	}
-
-	private static int next(final XMLStreamReader instance) throws XMLStreamException {
-		return instance != null ? instance.next() : 0;
-	}
-
-	private static boolean hasNext(final XMLStreamReader instance) throws XMLStreamException {
-		return instance != null && instance.hasNext();
-	}
-
-	private static void updateVersion(final Dependency dependency, final Map<String, String> map, final Path path)
-			throws IOException {
-		//
-		if (dependency != null) {
-			//
-			String version = null;
-			//
-			if (Objects.equals(dependency.groupId, get(map, "groupId"))
-					&& Objects.equals(dependency.artifactId, get(map, "artifactId")) && containsKey(map, VERSION)
-					&& !Objects.equals(version = get(map, VERSION), dependency.version)) {
-				//
-				final StringBuilder sb = new StringBuilder(
-						ObjectUtils.getIfNull(testAndApply(x -> isFile(toFile(x)), path, Files::readString, null), ""));
-				//
-				if (dependency.versionIndexStart != null && dependency.versionIndexEnd != null) {
-					//
-					sb.delete(dependency.versionIndexStart, dependency.versionIndexEnd);
-					//
-				} // if
-					//
-				System.out.println(String.format("groupId=%1$s,artifactId=%2$s,version=[%3$s->%4$s]",
-						dependency.groupId, dependency.artifactId, dependency.version, version));
-				//
-				Files.writeString(path,
-						dependency.versionIndexStart != null
-								? sb.insert(dependency.versionIndexStart, String.join("", "<version>", version))
-								: sb);
-				//
-			} // if
-				//
-		} // if
+		} // try
 			//
 	}
 
-	private static boolean and(final boolean a, final boolean b, final boolean... bs) {
-		//
-		boolean result = a && b;
-		//
-		if (!result) {
-			//
-			return result;
-			//
-		} // if
-			//
-		for (int i = 0; bs != null && i < bs.length; i++) {
-			//
-			if (!(result &= bs[i])) {
-				//
-				return result;
-				//
-			} // if
-				//
-		} // for
-			//
-		return result;
-		//
-	}
-
-	private static boolean containsKey(final Map<?, ?> instance, final Object key) {
-		return instance != null && instance.containsKey(key);
-	}
-
-	private static int lastIndexOf(final String a, final String b) {
+	private static int indexOf(final String a, final String b, final int fromIndex) {
 		//
 		if (a == null) {
 			//
@@ -381,11 +149,67 @@ public class UpdateVersion {
 		} // if
 			//
 		final Field value = testAndApply(x -> IterableUtils.size(x) == 1, toList(
-				filter(FieldUtils.getAllFieldsList(getClass(a)).stream(), f -> Objects.equals(getName(f), "value"))),
+				filter(stream(FieldUtils.getAllFieldsList(getClass(a))), f -> Objects.equals(getName(f), "value"))),
 				x -> IterableUtils.get(x, 0), null);
 		//
-		return value == null || Narcissus.getField(a, value) != null ? a.lastIndexOf(b) : -1;
+		return value == null || Narcissus.getField(a, value) != null ? a.indexOf(b, fromIndex) : -1;
 		//
+	}
+
+	private static int indexOf(final String a, final String b) {
+		//
+		if (a == null) {
+			//
+			return -1;
+			//
+		} // if
+			//
+		final Field value = testAndApply(x -> IterableUtils.size(x) == 1, toList(
+				filter(stream(FieldUtils.getAllFieldsList(getClass(a))), f -> Objects.equals(getName(f), "value"))),
+				x -> IterableUtils.get(x, 0), null);
+		//
+		return value == null || Narcissus.getField(a, value) != null ? a.indexOf(b) : -1;
+		//
+	}
+
+	private static <T> Stream<T> stream(final Collection<T> instance) {
+		return instance != null ? instance.stream() : null;
+	}
+
+	private static <E> void add(final Collection<E> instance, final E item) {
+		if (instance != null) {
+			instance.add(item);
+		}
+	}
+
+	private static Node item(final NodeList instance, final int index) {
+		return instance != null ? instance.item(index) : null;
+	}
+
+	private static int getLength(final NodeList instance) {
+		return instance != null ? instance.getLength() : 0;
+	}
+
+	private static <T> T cast(final Class<T> clz, final Object instance) {
+		return clz != null && clz.isInstance(instance) ? clz.cast(instance) : null;
+	}
+
+	private static Object evaluate(final XPath instance, final String expression, final Object item,
+			final QName returnType) throws XPathExpressionException {
+		return instance != null ? instance.evaluate(expression, item, returnType) : null;
+	}
+
+	private static Document parse(final DocumentBuilder instance, final File file) throws SAXException, IOException {
+		return instance != null && file != null && file.getPath() != null ? instance.parse(file) : null;
+	}
+
+	private static DocumentBuilder newDocumentBuilder(final DocumentBuilderFactory instance)
+			throws ParserConfigurationException {
+		return instance != null ? instance.newDocumentBuilder() : null;
+	}
+
+	private static XPath newXPath(final XPathFactory instance) {
+		return instance != null ? instance.newXPath() : null;
 	}
 
 	private static String getName(final Member instance) {
@@ -402,16 +226,6 @@ public class UpdateVersion {
 
 	private static Class<?> getClass(final Object instance) {
 		return instance != null ? instance.getClass() : null;
-	}
-
-	private static <T, R> R testAndApply(final ObjIntPredicate<T> predicate, final T object, final int integer,
-			final ObjIntFunction<T, R> functionTrue, final ObjIntFunction<T, R> functionFalse) {
-		return predicate != null && predicate.test(object, integer) ? apply(functionTrue, object, integer)
-				: apply(functionFalse, object, integer);
-	}
-
-	private static <T, R> R apply(final ObjIntFunction<T, R> instance, final T object, final int integer) {
-		return instance != null ? instance.apply(object, integer) : null;
 	}
 
 	private static <T, R, E extends Throwable> R testAndApply(final Predicate<T> predicate, final T value,
@@ -432,23 +246,8 @@ public class UpdateVersion {
 		return instance != null ? instance.toFile() : null;
 	}
 
-	private static XMLStreamReader createXMLStreamReader(final XMLInputFactory instance, final InputStream inputStream)
-			throws XMLStreamException {
-		return instance != null ? instance.createXMLStreamReader(inputStream) : null;
-	}
-
 	private static <V> V get(final Map<?, V> instance, final Object key) {
 		return instance != null ? instance.get(key) : null;
-	}
-
-	private static void close(final XMLStreamReader instance) throws XMLStreamException {
-		if (instance != null) {
-			instance.close();
-		}
-	}
-
-	private static boolean contains(final Collection<?> instance, final Object item) {
-		return instance != null && instance.contains(item);
 	}
 
 	private static boolean isFile(final File instance) {

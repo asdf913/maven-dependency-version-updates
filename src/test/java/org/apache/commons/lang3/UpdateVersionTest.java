@@ -14,46 +14,52 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.stream.XMLInputFactory;
-import javax.xml.stream.XMLStreamReader;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathFactory;
 
 import org.apache.commons.lang3.function.FailableFunction;
-import org.d2ab.function.ObjIntFunction;
-import org.d2ab.function.ObjIntPredicate;
 import org.testng.Assert;
 import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.Test;
+import org.w3c.dom.NodeList;
 
 import com.google.common.reflect.Reflection;
 
 import io.github.toolfactory.narcissus.Narcissus;
-import jakarta.xml.ws.Holder;
 
 public class UpdateVersionTest {
 
-	private static Method METHOD_AND, METHOD_GET_CLASS = null;
+	private static Method METHOD_ADD, METHOD_CAST, METHOD_PARSE, METHOD_NEW_DOCUMENT_BUILDER = null;
 
 	@BeforeSuite
 	void beforeSuite() throws NoSuchMethodException {
 		//
 		final Class<?> clz = UpdateVersion.class;
 		//
-		(METHOD_AND = clz.getDeclaredMethod("and", Boolean.TYPE, Boolean.TYPE, boolean[].class)).setAccessible(true);
+		(METHOD_ADD = clz.getDeclaredMethod("add", Collection.class, Object.class)).setAccessible(true);
 		//
-		(METHOD_GET_CLASS = clz.getDeclaredMethod("getClass", Object.class)).setAccessible(true);
+		(METHOD_CAST = clz.getDeclaredMethod("cast", Class.class, Object.class)).setAccessible(true);
+		//
+		(METHOD_PARSE = clz.getDeclaredMethod("parse", DocumentBuilder.class, File.class)).setAccessible(true);
+		//
+		(METHOD_NEW_DOCUMENT_BUILDER = clz.getDeclaredMethod("newDocumentBuilder", DocumentBuilderFactory.class))
+				.setAccessible(true);
 		//
 	}
 
 	private static class IH implements InvocationHandler {
 
-		private Boolean contains, test, containsKey, hasNext, booleanValue;
+		private Boolean contains, test, add;
 
-		private Integer next;
+		private Integer length;
 
 		@Override
 		public Object invoke(final Object proxy, final Method method, final Object[] args) throws Throwable {
@@ -66,22 +72,46 @@ public class UpdateVersionTest {
 				//
 			final String name = getName(method);
 			//
-			if (proxy instanceof Collection && Objects.equals(name, "contains")) {
+			if (proxy instanceof Collection) {
 				//
-				return contains;
-				//
+				if (Objects.equals(name, "contains")) {
+					//
+					return contains;
+					//
+				} else if (Objects.equals(name, "add")) {
+					//
+					return add;
+					//
+				} else if (Objects.equals(name, "stream")) {
+					//
+					return null;
+					//
+				} // if
+					//
 			} else if (proxy instanceof Map) {
 				//
 				if (contains(Arrays.asList("put", "get"), name)) {
 					//
 					return null;
 					//
-				} else if (Objects.equals(name, "containsKey")) {
+				} // if
 					//
-					return containsKey;
+			} else if (proxy instanceof NodeList) {
+				//
+				if (Objects.equals(name, "getLength")) {
+					//
+					return length;
+					//
+				} else if (Objects.equals(name, "item")) {
+					//
+					return null;
 					//
 				} // if
 					//
+			} else if (proxy instanceof XPath && Objects.equals(name, "evaluate")) {
+				//
+				return null;
+				//
 			} else if (proxy instanceof Path && Objects.equals(name, "toFile")) {
 				//
 				return null;
@@ -102,40 +132,13 @@ public class UpdateVersionTest {
 					//
 				} // if
 					//
-			} else if (proxy instanceof XMLStreamReader) {
-				//
-				if (Objects.equals(name, "hasNext")) {
-					//
-					return hasNext;
-					//
-				} else if (Objects.equals(name, "next")) {
-					//
-					return next;
-					//
-				} else if (contains(Arrays.asList("getLocation", "getLocalName"), name)) {
-					//
-					return null;
-					//
-				} // if
-					//
-			} else if (proxy instanceof Entry && contains(Arrays.asList("getKey", "getValue"), name)) {
-				//
-				return null;
-				//
-			} else if (Boolean.logicalOr(proxy instanceof Predicate, proxy instanceof ObjIntPredicate)
-					&& Objects.equals(name, "test")) {
+			} else if (proxy instanceof Predicate && Objects.equals(name, "test")) {
 				//
 				return test;
 				//
-			} else if (Boolean.logicalOr(proxy instanceof FailableFunction, proxy instanceof ObjIntFunction)
-					&& Objects.equals(name, "apply")) {
+			} else if (proxy instanceof FailableFunction && Objects.equals(name, "apply")) {
 				//
 				return null;
-				//
-			} else if (isAssignableFrom(Class.forName("org.apache.commons.lang3.UpdateVersion$BooleanMap"),
-					UpdateVersionTest.getClass(proxy)) && Objects.equals(name, "getBoolean")) {
-				//
-				return booleanValue;
 				//
 			} // if
 				//
@@ -143,24 +146,6 @@ public class UpdateVersionTest {
 			//
 		}
 
-		private static boolean isAssignableFrom(final Class<?> a, final Class<?> b) {
-			return a != null && b != null && a.isAssignableFrom(b);
-		}
-
-	}
-
-	private static Class<?> getClass(final Object instance) throws Throwable {
-		try {
-			final Object obj = METHOD_GET_CLASS != null ? METHOD_GET_CLASS.invoke(null, instance) : null;
-			if (obj == null) {
-				return null;
-			} else if (obj instanceof Class<?>) {
-				return (Class<?>) obj;
-			}
-			throw new Throwable(Objects.toString(getClass(obj)));
-		} catch (final InvocationTargetException e) {
-			throw e.getTargetException();
-		}
 	}
 
 	private static Class<?> getReturnType(final Method instance) {
@@ -168,7 +153,7 @@ public class UpdateVersionTest {
 	}
 
 	@Test
-	void testNull() throws ClassNotFoundException {
+	void testNull() throws Throwable {
 		//
 		final Method[] ms = UpdateVersion.class.getDeclaredMethods();
 		//
@@ -213,12 +198,7 @@ public class UpdateVersionTest {
 			//
 			result = Narcissus.invokeStaticMethod(m, toArray(collection));
 			//
-			if (contains(Arrays.asList(Integer.TYPE, Boolean.TYPE), getReturnType(m))
-					|| Boolean.logicalAnd(Objects.equals(getName(m), "execute"),
-							Arrays.equals(parameterTypes,
-									new Class<?>[] { XMLStreamReader.class, Map.class, Path.class, Iterable.class,
-											Holder.class,
-											Class.forName("org.apache.commons.lang3.UpdateVersion$BooleanMap") }))) {
+			if (contains(Arrays.asList(Integer.TYPE, Boolean.TYPE), getReturnType(m))) {
 				//
 				Assert.assertNotNull(result, toString);
 				//
@@ -241,7 +221,7 @@ public class UpdateVersionTest {
 	}
 
 	@Test
-	void testNotNull() throws ClassNotFoundException {
+	void testNotNull() throws Throwable {
 		//
 		final Method[] ms = UpdateVersion.class.getDeclaredMethods();
 		//
@@ -259,9 +239,9 @@ public class UpdateVersionTest {
 		//
 		final IH ih = new IH();
 		//
-		ih.contains = ih.test = ih.containsKey = ih.hasNext = ih.booleanValue = Boolean.FALSE;
+		ih.contains = ih.test = ih.add = Boolean.FALSE;
 		//
-		ih.next = Integer.valueOf(0);
+		ih.length = Integer.valueOf(0);
 		//
 		for (int i = 0; ms != null && i < ms.length; i++) {
 			//
@@ -292,6 +272,22 @@ public class UpdateVersionTest {
 					//
 					add(collection, XMLInputFactory.newDefaultFactory());
 					//
+				} else if (Objects.equals(parameterType, DocumentBuilderFactory.class)) {
+					//
+					add(collection, DocumentBuilderFactory.newDefaultInstance());
+					//
+				} else if (Objects.equals(parameterType, DocumentBuilder.class)) {
+					//
+					add(collection,
+							METHOD_NEW_DOCUMENT_BUILDER != null
+									? METHOD_NEW_DOCUMENT_BUILDER.invoke(null,
+											DocumentBuilderFactory.newDefaultInstance())
+									: null);
+					//
+				} else if (Objects.equals(parameterType, XPathFactory.class)) {
+					//
+					add(collection, XPathFactory.newDefaultInstance());
+					//
 				} else if (Objects.equals(parameterType, InputStream.class)) {
 					//
 					add(collection, new ByteArrayInputStream(new byte[] {}));
@@ -299,6 +295,10 @@ public class UpdateVersionTest {
 				} else if (Objects.equals(parameterType, Integer.TYPE)) {
 					//
 					add(collection, Integer.valueOf(0));
+					//
+				} else if (Objects.equals(parameterType, Class.class)) {
+					//
+					add(collection, Object.class);
 					//
 				} else if (parameterType != null && parameterType.isArray()) {
 					//
@@ -317,17 +317,18 @@ public class UpdateVersionTest {
 			result = Narcissus.invokeStaticMethod(m, toArray(collection));
 			//
 			if (contains(Arrays.asList(Integer.TYPE, Boolean.TYPE), getReturnType(m))
-					|| Boolean.logicalAnd(Objects.equals(name = getName(m), "createXMLStreamReader"),
-							Arrays.equals(parameterTypes, new Class<?>[] { XMLInputFactory.class, InputStream.class }))
 					|| Boolean.logicalAnd(Objects.equals(name, "getClass"),
 							Arrays.equals(parameterTypes, new Class<?>[] { Object.class }))
 					|| Boolean.logicalAnd(Objects.equals(name, "filter"),
 							Arrays.equals(parameterTypes, new Class<?>[] { Stream.class, Predicate.class }))
-					|| Boolean.logicalAnd(Objects.equals(name, "execute"),
-							Arrays.equals(parameterTypes,
-									new Class<?>[] { XMLStreamReader.class, Map.class, Path.class, Iterable.class,
-											Holder.class,
-											Class.forName("org.apache.commons.lang3.UpdateVersion$BooleanMap") }))) {
+					|| Boolean.logicalAnd(Objects.equals(name, "getClass"),
+							Arrays.equals(parameterTypes, new Class<?>[] { Object.class }))
+					|| Boolean.logicalAnd(Objects.equals(name, "cast"),
+							Arrays.equals(parameterTypes, new Class<?>[] { Class.class, Object.class }))
+					|| Boolean.logicalAnd(Objects.equals(name, "newDocumentBuilder"),
+							Arrays.equals(parameterTypes, new Class<?>[] { DocumentBuilderFactory.class }))
+					|| Boolean.logicalAnd(Objects.equals(name, "newXPath"),
+							Arrays.equals(parameterTypes, new Class<?>[] { XPathFactory.class }))) {
 				//
 				Assert.assertNotNull(result, toString);
 				//
@@ -345,9 +346,13 @@ public class UpdateVersionTest {
 		return instance != null ? instance.getName() : null;
 	}
 
-	private static <E> void add(final Collection<E> instance, final E item) {
-		if (instance != null) {
-			instance.add(item);
+	private static <E> void add(final Collection<E> instance, final E item) throws Throwable {
+		try {
+			if (METHOD_ADD != null) {
+				METHOD_ADD.invoke(null, instance, item);
+			}
+		} catch (final InvocationTargetException e) {
+			throw e.getTargetException();
 		}
 	}
 
@@ -364,7 +369,7 @@ public class UpdateVersionTest {
 		//
 		UpdateVersion.main(new String[] { "file=pom.xml" });
 		//
-		UpdateVersion.main(new String[] { "file=pom.xml", "groupId=org.testng", "artifactId=testng" });
+		UpdateVersion.main(new String[] { "file=pom.xml", "groupId=org.testng", "artifactId=testng1" });
 		//
 		final File file = File.createTempFile(RandomStringUtils.secure().nextAlphanumeric(3), ".xml");
 		//
@@ -394,16 +399,20 @@ public class UpdateVersionTest {
 	}
 
 	@Test
-	public void testAnd() throws IllegalAccessException, InvocationTargetException {
+	public void testCast() throws IllegalAccessException, InvocationTargetException {
 		//
-		Assert.assertEquals(METHOD_AND != null ? METHOD_AND.invoke(null, Boolean.TRUE, Boolean.TRUE, null) : null,
-				Boolean.TRUE);
-		//
-		Assert.assertEquals(
-				METHOD_AND != null ? METHOD_AND.invoke(null, Boolean.TRUE, Boolean.TRUE, new boolean[] { false })
-						: null,
-				Boolean.FALSE);
+		Assert.assertNull(METHOD_CAST != null ? METHOD_CAST.invoke(null, Object.class, null) : null);
 		//
 	}
 
+	@Test
+	public void testParse() throws IllegalAccessException, InvocationTargetException, ParserConfigurationException {
+		//
+		Assert.assertNull(METHOD_PARSE != null ? METHOD_PARSE.invoke(null,
+				METHOD_NEW_DOCUMENT_BUILDER != null
+						? METHOD_NEW_DOCUMENT_BUILDER.invoke(null, DocumentBuilderFactory.newDefaultInstance())
+						: null,
+				null) : null);
+		//
+	}
 }
