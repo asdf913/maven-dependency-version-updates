@@ -20,7 +20,6 @@ import java.util.stream.Stream;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathFactory;
@@ -406,7 +405,7 @@ public class UpdateVersionTest {
 	}
 
 	@Test
-	public void testParse() throws IllegalAccessException, InvocationTargetException, ParserConfigurationException {
+	public void testParse() throws IllegalAccessException, InvocationTargetException {
 		//
 		Assert.assertNull(METHOD_PARSE != null ? METHOD_PARSE.invoke(null,
 				METHOD_NEW_DOCUMENT_BUILDER != null
